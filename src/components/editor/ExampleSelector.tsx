@@ -22,14 +22,22 @@ export default function ExampleSelector({ onSelect, liveExamples = [] }: Example
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from('td_example_codes')
-      .select('*')
-      .order('order_index')
-      .then(({ data }) => {
-        if (data) setExamples(data);
-      })
-      .finally(() => setIsLoading(false));
+    let isMounted = true;
+
+    async function fetchExamples() {
+      try {
+        const { data } = await supabase.from('td_example_codes').select('*').order('order_index');
+        if (data && isMounted) setExamples(data);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    fetchExamples();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handlePick = (code: string) => {
