@@ -39,19 +39,17 @@ export function useParticipantRealtime(sessionId: string, participantId: string,
       if (!code) return;
       const ok = window.confirm(`강사님이 예제 코드를 배포했습니다: ${title}\n적용하시겠습니까?`);
       if (ok) setSharedCode(code);
-      setLiveExamples((prev) =>
-        [
-          {
-            id: generateId(),
-            title: title ?? '강사 배포 예제',
-            description: '방금 배포된 강사 예제입니다.',
-            code,
-            type: 'broadcast',
-            timestamp: new Date().toISOString(),
-          },
-          ...prev,
-        ].slice(0, 5),
-      );
+      setLiveExamples((prev) => {
+        const entry: LiveExampleItem = {
+          id: generateId(),
+          title: title ?? '강사 배포 예제',
+          description: '방금 배포된 강사 예제입니다.',
+          code,
+          type: 'broadcast',
+          timestamp: new Date().toISOString(),
+        };
+        return [entry, ...prev].slice(0, 5);
+      });
     });
 
     broadcastChannel.on('broadcast', { event: 'share_excellent_work' }, (payload) => {
@@ -59,19 +57,17 @@ export function useParticipantRealtime(sessionId: string, participantId: string,
       const code = payload.payload.data?.code as string;
       alert(`우수작이 공유되었습니다! 작성자: ${author}`);
       if (!code) return;
-      setLiveExamples((prev) =>
-        [
-          {
-            id: generateId(),
-            title: `${author ?? '익명'}님의 우수작`,
-            description: '강사님이 선정한 우수작입니다.',
-            code,
-            type: 'excellent',
-            timestamp: new Date().toISOString(),
-          },
-          ...prev,
-        ].slice(0, 5),
-      );
+      setLiveExamples((prev) => {
+        const entry: LiveExampleItem = {
+          id: generateId(),
+          title: `${author ?? '익명'}님의 우수작`,
+          description: '강사님이 선정한 우수작입니다.',
+          code,
+          type: 'excellent',
+          timestamp: new Date().toISOString(),
+        };
+        return [entry, ...prev].slice(0, 5);
+      });
     });
 
     broadcastChannel.subscribe();
