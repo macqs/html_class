@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { broadcastEvent, createChannel } from '@/lib/realtime';
@@ -14,7 +14,7 @@ interface ActivityLogEntry {
 
 export function useInstructorRealtime(sessionId: string) {
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [helpRequests, setHelpRequests] = useState<(HelpRequest & { participant?: Participant })[]>([]);
+  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
   const [broadcastChannel, setBroadcastChannel] = useState<RealtimeChannel | null>(null);
 
@@ -86,12 +86,18 @@ export function useInstructorRealtime(sessionId: string) {
   }
 
   async function loadHelpRequests() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('td_help_requests')
-      .select('*, participant:td_participants(*)')
+      .select('*')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
-    if (data) setHelpRequests(data as any);
+
+    if (error) {
+      console.error('도움 요청을 불러오지 못했습니다.', error);
+      return;
+    }
+
+    if (data) setHelpRequests(data as HelpRequest[]);
   }
 
   async function loadActivityLogs() {
@@ -160,9 +166,18 @@ export function useInstructorRealtime(sessionId: string) {
     loadHelpRequests();
   };
 
+  const helpRequestsWithParticipants = useMemo(
+    () =>
+      helpRequests.map((request) => ({
+        ...request,
+        participant: participants.find((participant) => participant.id === request.participant_id),
+      })),
+    [helpRequests, participants],
+  );
+
   return {
     participants,
-    helpRequests,
+    helpRequests: helpRequestsWithParticipants,
     activityLogs,
     sendAnnouncement,
     distributeExample,
