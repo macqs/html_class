@@ -1,27 +1,33 @@
 import { createClient } from '@/lib/supabase-server';
 import { LoginForm } from './login-form';
+import { SessionCodeForm } from './SessionCodeForm';
 import type { Session } from '@/types';
 
 interface PageProps {
-  searchParams: Promise<{ session?: string }>;
+  searchParams: Promise<{ session?: string; code?: string }>;
 }
 
 export default async function LoginPage(props: PageProps) {
   const searchParams = await props.searchParams;
-  const sessionId = searchParams.session;
+  const sessionIdParam = searchParams.session;
+  const sessionCodeParam = searchParams.code;
 
-  if (!sessionId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="rounded-2xl bg-white p-8 text-center shadow-xl">
-          <p className="text-lg font-semibold text-rose-600">잘못된 접근입니다.</p>
-          <p className="mt-2 text-zinc-600">세션 ID가 필요합니다.</p>
-        </div>
-      </div>
-    );
+  if (!sessionIdParam && !sessionCodeParam) {
+    return <SessionCodeForm />;
   }
 
   const supabase = await createClient();
+
+  let sessionId = sessionIdParam;
+
+  if (!sessionId && sessionCodeParam) {
+    const sessionByCode = await supabase.from('td_sessions').select('*').eq('session_code', sessionCodeParam).single();
+    if (sessionByCode.data) {
+      sessionId = sessionByCode.data.id;
+    } else {
+      return <SessionCodeForm errorMessage="세션 코드가 올바른지 확인해주세요." />;
+    }
+  }
 
   const [sessionResult, participantsResult] = await Promise.all([
     supabase.from('td_sessions').select('*').eq('id', sessionId).single(),
@@ -32,14 +38,7 @@ export default async function LoginPage(props: PageProps) {
   const participants = participantsResult.data as { seat_position: string }[] | null;
 
   if (!session) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="rounded-2xl bg-white p-8 text-center shadow-xl">
-          <p className="text-lg font-semibold text-rose-600">세션을 찾을 수 없습니다.</p>
-          <p className="mt-2 text-zinc-600">올바른 링크인지 확인해주세요.</p>
-        </div>
-      </div>
-    );
+    return <SessionCodeForm errorMessage="세션 정보를 찾을 수 없습니다. 담당자에게 문의해주세요." />;
   }
 
   const occupiedSeats = participants ? participants.map((p) => p.seat_position) : [];

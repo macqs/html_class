@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, Users, LayoutGrid, RefreshCw, Link2 } from 'lucide-react';
+import { CalendarDays, Users, LayoutGrid, RefreshCw, Link2, Copy } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
 import type { SeatLayout, Session } from '@/types';
@@ -42,11 +42,20 @@ export default function SessionManagerPage() {
     setIsLoading(false);
   }
 
-  function copyParticipantLink(sessionId: string) {
-    const url = `${window.location.origin}/login?session=${sessionId}`;
+  function copyParticipantLink(session: SessionWithLayout) {
+    const baseUrl = window.location.origin;
+    const url = session.session_code ? `${baseUrl}/login?code=${session.session_code}` : `${baseUrl}/login?session=${session.id}`;
     navigator.clipboard
       .writeText(url)
       .then(() => alert('참가자 공유 링크가 클립보드에 복사되었습니다.'))
+      .catch(() => alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
+  }
+
+  function copySessionCode(code?: string) {
+    if (!code) return;
+    navigator.clipboard
+      .writeText(code)
+      .then(() => alert('세션 코드가 클립보드에 복사되었습니다.'))
       .catch(() => alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
   }
 
@@ -124,6 +133,18 @@ export default function SessionManagerPage() {
                         <CalendarDays size={14} />
                         {new Date(session.date).toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' })}
                       </p>
+                      {session.session_code && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-900">코드 {session.session_code}</span>
+                          <button
+                            type="button"
+                            onClick={() => copySessionCode(session.session_code)}
+                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                          >
+                            <Copy size={12} /> 복사
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${session.status === 'ended' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}
@@ -161,7 +182,7 @@ export default function SessionManagerPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => copyParticipantLink(session.id)}
+                      onClick={() => copyParticipantLink(session)}
                       className="flex flex-1 items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50"
                     >
                       <Link2 size={16} /> 참가자 링크

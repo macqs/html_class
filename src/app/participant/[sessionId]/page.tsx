@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import type { Participant } from '@/types';
 import CodeEditor from '@/components/editor/CodeEditor';
 import PreviewFrame from '@/components/editor/PreviewFrame';
-import ExampleSelector from '@/components/editor/ExampleSelector';
+import ExampleSelector, { LocalExampleItem } from '@/components/editor/ExampleSelector';
 import { useParticipantRealtime } from '@/hooks/useParticipantRealtime';
 
 const DEFAULT_HTML = `<!DOCTYPE html>
@@ -192,6 +192,36 @@ export default function ParticipantPage() {
   const [isValidating, setIsValidating] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [localExamples, setLocalExamples] = useState<LocalExampleItem[]>([]);
+
+  const getLocalExamplesKey = (participantId: string) => `localExamples:${participantId}`;
+
+  const loadLocalExamples = useCallback(
+    (participantId: string) => {
+      if (typeof window === 'undefined') return;
+      const stored = localStorage.getItem(getLocalExamplesKey(participantId));
+      if (!stored) {
+        setLocalExamples([]);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stored) as LocalExampleItem[];
+        setLocalExamples(parsed);
+      } catch {
+        setLocalExamples([]);
+      }
+    },
+    [],
+  );
+
+  const persistLocalExamples = useCallback(
+    (participantId: string, items: LocalExampleItem[]) => {
+      if (typeof window === 'undefined') return;
+      setLocalExamples(items);
+      localStorage.setItem(getLocalExamplesKey(participantId), JSON.stringify(items));
+    },
+    [],
+  );
 
   useEffect(() => {
     const storedId = typeof window !== 'undefined' ? localStorage.getItem('participantId') : null;
@@ -209,9 +239,10 @@ export default function ParticipantPage() {
         if (data) {
           setParticipant(data);
           loadLatestCode(data.id);
+          loadLocalExamples(data.id);
         }
       });
-  }, [router, sessionId]);
+  }, [loadLocalExamples, router, sessionId]);
 
   const { announcement, sharedCode, liveExamples, updateStatus, requestHelp } = useParticipantRealtime(
     sessionId,
@@ -237,8 +268,28 @@ export default function ParticipantPage() {
 
       setIsSaving(false);
       setLastSaved(new Date());
+
+      if (isFinal) {
+        const newExample: LocalExampleItem = {
+          id: crypto.randomUUID?.() ?? `${Date.now()}`,
+          title: `내 작품 (${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })})`,
+          code,
+          savedAt: new Date().toISOString(),
+        };
+        const next = [...localExamples, newExample].slice(-6);
+        persistLocalExamples(participant.id, next);
+      }
     },
-    [participant, code]
+    [code, localExamples, participant, persistLocalExamples]
+  );
+
+  const handleRemoveLocalExample = useCallback(
+    (id: string) => {
+      if (!participant) return;
+      const next = localExamples.filter((example) => example.id !== id);
+      persistLocalExamples(participant.id, next);
+    },
+    [localExamples, participant, persistLocalExamples],
   );
 
   useEffect(() => {
@@ -345,7 +396,12 @@ export default function ParticipantPage() {
       </main>
 
       <div className="flex items-center justify-between border-t bg-white px-6 py-4">
-        <ExampleSelector onSelect={setCode} liveExamples={liveExamples} />
+        <ExampleSelector
+          onSelect={setCode}
+          liveExamples={liveExamples}
+          localExamples={localExamples}
+          onRemoveLocalExample={handleRemoveLocalExample}
+        />
         <div className="flex gap-2">
           <button
             type="button"

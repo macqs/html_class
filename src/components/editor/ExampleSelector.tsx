@@ -1,44 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BookOpen, ChevronDown, Sparkles } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import type { ExampleCode, LiveExampleItem } from '@/types';
+import type { LiveExampleItem } from '@/types';
+
+export interface LocalExampleItem {
+  id: string;
+  title: string;
+  code: string;
+  savedAt: string;
+}
 
 interface ExampleSelectorProps {
   onSelect: (code: string) => void;
   liveExamples?: LiveExampleItem[];
+  localExamples?: LocalExampleItem[];
+  onRemoveLocalExample?: (id: string) => void;
 }
 
-const difficultyColors: Record<ExampleCode['difficulty'], string> = {
-  basic: 'bg-emerald-100 text-emerald-800',
-  intermediate: 'bg-amber-100 text-amber-800',
-  advanced: 'bg-rose-100 text-rose-800',
-};
-
-export default function ExampleSelector({ onSelect, liveExamples = [] }: ExampleSelectorProps) {
-  const [examples, setExamples] = useState<ExampleCode[]>([]);
+export default function ExampleSelector({
+  onSelect,
+  liveExamples = [],
+  localExamples = [],
+  onRemoveLocalExample,
+}: ExampleSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchExamples() {
-      try {
-        const { data } = await supabase.from('td_example_codes').select('*').order('order_index');
-        if (data && isMounted) setExamples(data);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-
-    fetchExamples();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const handlePick = (code: string) => {
     onSelect(code);
@@ -113,40 +99,54 @@ export default function ExampleSelector({ onSelect, liveExamples = [] }: Example
               )}
             </section>
 
-            <section className="mt-6">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-zinc-900">등록된 예제</h4>
-                <span className="text-xs text-zinc-500">{examples.length}개</span>
-              </div>
-              {isLoading ? (
-                <p className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
-                  예제를 불러오는 중입니다...
-                </p>
-              ) : examples.length === 0 ? (
-                <p className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
-                  등록된 예제가 없습니다.
-                </p>
-              ) : (
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  {examples.map((example) => (
-                    <button
-                      type="button"
+            {localExamples.length > 0 && (
+              <section className="mt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-zinc-900">내 로컬 백업</div>
+                  <p className="text-xs text-zinc-500">이 브라우저에서만 보이는 임시 저장본입니다.</p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {localExamples.map((example) => (
+                    <div
                       key={example.id}
-                      onClick={() => handlePick(example.code)}
-                      className="flex h-full flex-col rounded-2xl border border-slate-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
+                      className="flex flex-col rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-900">{example.title}</span>
-                        <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${difficultyColors[example.difficulty]}`}>
-                          {example.difficulty === 'basic' ? '기초' : example.difficulty === 'intermediate' ? '중급' : '고급'}
-                        </span>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-900">{example.title}</p>
+                          <p className="text-xs text-emerald-700">
+                            {new Date(example.savedAt).toLocaleString('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        {onRemoveLocalExample && (
+                          <button
+                            type="button"
+                            onClick={() => onRemoveLocalExample(example.id)}
+                            className="text-xs font-semibold text-emerald-900 hover:text-emerald-600"
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
-                      {example.description && <p className="mt-2 text-sm text-slate-600">{example.description}</p>}
-                    </button>
+                      <div className="mt-3 flex flex-col gap-2 text-sm">
+                        <button
+                          type="button"
+                          onClick={() => handlePick(example.code)}
+                          className="rounded-lg bg-white px-3 py-2 font-semibold text-emerald-700 shadow hover:bg-emerald-100"
+                        >
+                          불러오기
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              )}
-            </section>
+              </section>
+            )}
 
             <div className="mt-6 flex justify-end">
               <button

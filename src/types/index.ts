@@ -15,6 +15,7 @@ export interface Session {
   date: string;
   instructor_id: string;
   seat_layout: SeatLayout;
+  session_code?: string;
   template_id?: string;
   status: 'active' | 'ended';
   created_at: string;

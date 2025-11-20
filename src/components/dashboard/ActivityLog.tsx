@@ -37,9 +37,9 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
   };
 
   return (
-    <div className="h-64 rounded-lg border bg-white p-4">
+    <div className="flex h-full flex-col rounded-lg border bg-white p-4">
       <h3 className="mb-4 text-lg font-semibold text-zinc-900">활동 로그</h3>
-      <div className="h-full space-y-2 overflow-auto">
+      <div className="flex-1 space-y-2 overflow-auto">
         {logs.map((log) => (
           <div key={log.id} className="flex items-start gap-2 rounded-md p-2 hover:bg-zinc-50">
             <span className="text-lg">{getIcon(log.action_type)}</span>

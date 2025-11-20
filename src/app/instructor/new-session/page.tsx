@@ -26,6 +26,13 @@ export default function NewSessionPage() {
 
   const canSubmit = title && instructorId && date && seatCount > 0 && !seatOverLimit && !isSubmitting;
 
+  async function generateSessionCode(): Promise<string> {
+    const candidate = String(Math.floor(100000 + Math.random() * 900000));
+    const { data } = await supabase.from('td_sessions').select('id').eq('session_code', candidate).maybeSingle();
+    if (data) return generateSessionCode();
+    return candidate;
+  }
+
   async function handleCreateSession(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSubmit) return;
@@ -40,6 +47,8 @@ export default function NewSessionPage() {
         labels: generateSeatLabels(rows, cols),
       };
 
+      const sessionCode = await generateSessionCode();
+
       const { data, error: insertError } = await supabase
         .from('td_sessions')
         .insert({
@@ -48,6 +57,7 @@ export default function NewSessionPage() {
           date: new Date(date).toISOString(),
           seat_layout: seatLayout,
           status: 'active',
+          session_code: sessionCode,
         })
         .select()
         .single();

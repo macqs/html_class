@@ -31,6 +31,8 @@ export default function InstructorDashboardPage() {
   const [examples, setExamples] = useState<ExampleCode[]>([]);
   const [isExamplePickerOpen, setIsExamplePickerOpen] = useState(false);
   const [isLoadingExamples, setIsLoadingExamples] = useState(false);
+  const [exampleSearchText, setExampleSearchText] = useState('');
+  const [exampleSubjectFilter, setExampleSubjectFilter] = useState<'all' | '국어' | '사회' | '수학' | '과학'>('all');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [sharingParticipantId, setSharingParticipantId] = useState<string | null>(null);
 
@@ -77,6 +79,8 @@ export default function InstructorDashboardPage() {
 
   function closeExamplePicker() {
     setIsExamplePickerOpen(false);
+    setExampleSearchText('');
+    setExampleSubjectFilter('all');
   }
 
   async function handleSelectExample(example: ExampleCode) {
@@ -97,6 +101,17 @@ export default function InstructorDashboardPage() {
     setIsShareModalOpen(false);
     setSharingParticipantId(null);
   }
+
+  const filteredExamples = examples.filter((example) => {
+    const query = exampleSearchText.trim().toLowerCase();
+    const matchesSearch = !query || example.title.toLowerCase().includes(query) || example.description?.toLowerCase().includes(query);
+    
+    if (exampleSubjectFilter === 'all') return matchesSearch;
+    
+    const subjectMatch = example.title.match(/^\[([^\-\]]+)/);
+    const subject = subjectMatch?.[1];
+    return matchesSearch && subject === exampleSubjectFilter;
+  });
 
   async function handleShareExcellentWork(participant: Participant) {
     setSharingParticipantId(participant.id);
@@ -149,40 +164,65 @@ export default function InstructorDashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
-      <StatsBar {...stats} />
+      <div className="border-b bg-white">
+        <div className="flex items-center justify-between px-6 py-4">
+          <StatsBar {...stats} />
+          {session.session_code && (
+            <div className="ml-4 flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700">
+              <span className="font-mono text-lg text-zinc-900">코드 {session.session_code}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(session.session_code ?? '')
+                    .then(() => alert('세션 코드가 클립보드에 복사되었습니다.'))
+                    .catch(() => alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
+                }}
+                className="rounded-full border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
+              >
+                복사
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
-      <div className="grid flex-1 grid-cols-3 gap-4 p-4">
-        <div className="col-span-2">
-          <SeatMap
-            layout={seatLayout}
-            participants={participants}
-            onSeatClick={setPreviewParticipant}
-            onSeatDoubleClick={async (participant) => {
-              const { data } = await supabase
-                .from('td_code_works')
-                .select('*')
-                .eq('participant_id', participant.id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-              if (data?.code) {
-                setCodeSnapshot(data.code);
-              } else {
-                alert('저장된 코드가 없습니다.');
-              }
-            }}
-            onSeatRemove={(participant) => {
-              if (confirm(`${participant.nickname}님을 내보내고 좌석을 비울까요?`)) {
-                removeParticipant(participant.id);
-              }
-            }}
-          />
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="grid flex-1 grid-cols-3 gap-4">
+          <div className="col-span-2">
+            <SeatMap
+              layout={seatLayout}
+              participants={participants}
+              onSeatClick={setPreviewParticipant}
+              onSeatDoubleClick={async (participant) => {
+                const { data } = await supabase
+                  .from('td_code_works')
+                  .select('*')
+                  .eq('participant_id', participant.id)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                if (data?.code) {
+                  setCodeSnapshot(data.code);
+                } else {
+                  alert('저장된 코드가 없습니다.');
+                }
+              }}
+              onSeatRemove={(participant) => {
+                if (confirm(`${participant.nickname}님을 내보내고 좌석을 비울까요?`)) {
+                  removeParticipant(participant.id);
+                }
+              }}
+            />
+          </div>
+          <div className="flex flex-col">
+            <ActivityLog logs={activityLogs} />
+          </div>
         </div>
-        <div>
-          <CodePreviewPanel participant={previewParticipant} />
-        </div>
-        <div className="col-span-3">
-          <ActivityLog logs={activityLogs} />
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="aspect-[16/10]">
+            <CodePreviewPanel participant={previewParticipant} />
+          </div>
         </div>
       </div>
 
@@ -248,7 +288,7 @@ export default function InstructorDashboardPage() {
       {isExamplePickerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeExamplePicker}>
           <div
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -261,13 +301,40 @@ export default function InstructorDashboardPage() {
               </button>
             </div>
 
+            {!isLoadingExamples && examples.length > 0 && (
+              <div className="mb-4 flex flex-col gap-2 rounded-xl border border-zinc-100 bg-zinc-50 p-3 md:flex-row md:items-center md:justify-between">
+                <select
+                  value={exampleSubjectFilter}
+                  onChange={(event) => setExampleSubjectFilter(event.target.value as typeof exampleSubjectFilter)}
+                  className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                >
+                  <option value="all">전체 과목</option>
+                  <option value="국어">국어</option>
+                  <option value="사회">사회</option>
+                  <option value="수학">수학</option>
+                  <option value="과학">과학</option>
+                </select>
+                <input
+                  type="search"
+                  value={exampleSearchText}
+                  onChange={(event) => setExampleSearchText(event.target.value)}
+                  placeholder="제목 또는 설명 검색"
+                  className="w-full rounded-md border border-zinc-200 px-2 py-1 text-xs text-zinc-700 shadow-sm placeholder:text-zinc-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 md:w-64"
+                />
+              </div>
+            )}
+
             {isLoadingExamples ? (
               <p className="py-8 text-center text-sm text-zinc-500">예제를 불러오는 중입니다...</p>
             ) : examples.length === 0 ? (
               <p className="py-8 text-center text-sm text-zinc-500">등록된 예제가 없습니다.</p>
             ) : (
-              <div className="space-y-3">
-                {examples.map((example) => (
+              <>
+                <p className="mb-2 text-xs text-zinc-500">
+                  필터 결과 <span className="font-semibold text-zinc-700">{filteredExamples.length}</span>건 / 전체 {examples.length}건
+                </p>
+                <div className="max-h-96 space-y-3 overflow-y-auto">
+                  {filteredExamples.map((example) => (
                   <button
                     type="button"
                     key={example.id}
@@ -284,8 +351,9 @@ export default function InstructorDashboardPage() {
                       <p className="mt-2 text-sm text-zinc-500">{example.description}</p>
                     )}
                   </button>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
