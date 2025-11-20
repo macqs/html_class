@@ -146,6 +146,33 @@ export default function InstructorDashboardPage() {
     alert('세션이 종료되었습니다.');
   }
 
+  async function resolveHelpRequestForParticipant(participantId: string) {
+    const pendingRequest = helpRequests.find(
+      (request) => request.participant_id === participantId && request.status === 'pending',
+    );
+    if (!pendingRequest) return;
+
+    await markHelpRequestResolved(pendingRequest.id);
+    await supabase.from('td_participants').update({ status: 'working' }).eq('id', participantId);
+  }
+
+  async function handleSeatDoubleClick(participant: Participant) {
+    const { data } = await supabase
+      .from('td_code_works')
+      .select('*')
+      .eq('participant_id', participant.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data?.code) {
+      setCodeSnapshot(data.code);
+    } else {
+      alert('저장된 코드가 없습니다.');
+    }
+
+    await resolveHelpRequestForParticipant(participant.id);
+  }
+
   if (!session) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-zinc-500">
@@ -194,20 +221,7 @@ export default function InstructorDashboardPage() {
               layout={seatLayout}
               participants={participants}
               onSeatClick={setPreviewParticipant}
-              onSeatDoubleClick={async (participant) => {
-                const { data } = await supabase
-                  .from('td_code_works')
-                  .select('*')
-                  .eq('participant_id', participant.id)
-                  .order('created_at', { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-                if (data?.code) {
-                  setCodeSnapshot(data.code);
-                } else {
-                  alert('저장된 코드가 없습니다.');
-                }
-              }}
+              onSeatDoubleClick={handleSeatDoubleClick}
               onSeatRemove={(participant) => {
                 if (confirm(`${participant.nickname}님을 내보내고 좌석을 비울까요?`)) {
                   removeParticipant(participant.id);

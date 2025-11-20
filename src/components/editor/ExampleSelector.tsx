@@ -36,7 +36,7 @@ export default function ExampleSelector({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50"
+        className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50"
       >
         <BookOpen size={16} />
         예제 불러오기
@@ -48,8 +48,8 @@ export default function ExampleSelector({
           <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">예제 라이브러리</p>
-                <h3 className="text-lg font-bold text-zinc-900">공유된 코드와 기본 예제를 선택하세요</h3>
+                <p className="text-xs font-semibold uppercase tracking-widest text-blue-700">예제 라이브러리</p>
+                <h3 className="text-lg font-bold text-zinc-950">공유된 코드와 기본 예제를 선택하세요</h3>
               </div>
               <button
                 type="button"
@@ -62,11 +62,11 @@ export default function ExampleSelector({
             </div>
 
             <section className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-purple-700">
+              <div className="flex items-center gap-2 text-sm font-semibold text-purple-800">
                 <Sparkles size={16} /> 실시간 공유
               </div>
               {liveExamples.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-sm text-zinc-500">
+                <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-sm font-medium text-zinc-700">
                   아직 공유된 예제가 없습니다. 강사님의 예제 배포나 우수작 공유를 기다려주세요.
                 </p>
               ) : (
@@ -82,14 +82,14 @@ export default function ExampleSelector({
                         type="button"
                         key={example.id}
                         onClick={() => handlePick(example.code)}
-                        className="flex h-full flex-col rounded-2xl border border-zinc-200 p-4 text-left transition hover:border-blue-300 hover:bg-blue-50"
+                        className="flex h-full flex-col rounded-2xl border border-zinc-200 p-4 text-left text-zinc-900 transition hover:border-blue-300 hover:bg-blue-50"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-zinc-900">{example.title}</span>
+                          <span className="font-semibold text-zinc-950">{example.title}</span>
                           <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${badgeClass}`}>{badgeLabel}</span>
                         </div>
-                        {example.description && <p className="mt-2 text-sm text-zinc-500">{example.description}</p>}
-                        <span className="mt-3 text-xs text-zinc-400">
+                        {example.description && <p className="mt-2 text-sm text-zinc-700">{example.description}</p>}
+                        <span className="mt-3 text-xs text-zinc-500">
                           {new Date(example.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </button>
@@ -102,8 +102,8 @@ export default function ExampleSelector({
             {localExamples.length > 0 && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-zinc-900">내 로컬 백업</div>
-                  <p className="text-xs text-zinc-500">이 브라우저에서만 보이는 임시 저장본입니다.</p>
+                  <div className="text-sm font-semibold text-zinc-950">내 로컬 백업</div>
+                  <p className="text-xs font-medium text-zinc-600">이 브라우저에서만 보이는 임시 저장본입니다.</p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {localExamples.map((example) => (
@@ -127,7 +127,7 @@ export default function ExampleSelector({
                           <button
                             type="button"
                             onClick={() => onRemoveLocalExample(example.id)}
-                            className="text-xs font-semibold text-emerald-900 hover:text-emerald-600"
+                            className="text-xs font-semibold text-emerald-950 hover:text-emerald-700"
                           >
                             삭제
                           </button>
@@ -137,7 +137,7 @@ export default function ExampleSelector({
                         <button
                           type="button"
                           onClick={() => handlePick(example.code)}
-                          className="rounded-lg bg-white px-3 py-2 font-semibold text-emerald-700 shadow hover:bg-emerald-100"
+                          className="rounded-lg bg-white px-3 py-2 font-semibold text-emerald-900 shadow hover:bg-emerald-100"
                         >
                           불러오기
                         </button>
@@ -152,7 +152,7 @@ export default function ExampleSelector({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
+                className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
               >
                 닫기
               </button>
