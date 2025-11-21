@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useParams, useRouter } from 'next/navigation';
 import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -238,11 +239,39 @@ export default function ParticipantPage() {
       .then(({ data }: { data: Participant | null }) => {
         if (data) {
           setParticipant(data);
+          subscribeToParticipant(data.id);
           loadLatestCode(data.id);
           loadLocalExamples(data.id);
         }
       });
   }, [loadLocalExamples, router, sessionId]);
+
+  function subscribeToParticipant(participantId: string) {
+    const channel = supabase
+      .channel(`participant-status:${participantId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'td_participants', filter: `id=eq.${participantId}` },
+        (payload) => {
+          const updated = payload.new as Participant;
+          setParticipant((prev) => {
+            if (!prev) return updated;
+            return { ...prev, ...updated };
+          });
+        },
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+  }
+
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  useEffect(() => {
+    return () => {
+      channelRef.current?.unsubscribe();
+    };
+  }, []);
 
   const { announcement, sharedCode, liveExamples, updateStatus, requestHelp } = useParticipantRealtime(
     sessionId,
@@ -304,8 +333,14 @@ export default function ParticipantPage() {
 
   useEffect(() => {
     if (!participant) return;
-    updateStatus('working').catch(() => null);
-  }, [code, participant, updateStatus]);
+    if (participant.status !== 'idle') return;
+
+    updateStatus('working')
+      .then(() =>
+        setParticipant((prev) => (prev ? { ...prev, status: 'working' } : prev)),
+      )
+      .catch(() => null);
+  }, [participant?.status, updateStatus]);
 
   async function loadLatestCode(id: string) {
     const { data } = await supabase
@@ -350,6 +385,7 @@ export default function ParticipantPage() {
   async function handleRequestHelp(message: string) {
     if (!participant) return;
     await requestHelp(message, code);
+    setParticipant((prev) => (prev ? { ...prev, status: 'help_needed' } : prev));
     alert('도움 요청이 전송되었습니다!');
   }
 
