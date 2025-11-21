@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useParams, useRouter } from 'next/navigation';
-import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy } from 'lucide-react';
+import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
 import type { Participant } from '@/types';
 import CodeEditor from '@/components/editor/CodeEditor';
@@ -34,6 +35,52 @@ interface ValidationModalProps {
   feedback: ValidationFeedback;
   onClose: () => void;
   onApply: () => void;
+}
+
+interface QRModalProps {
+  url: string;
+  onClose: () => void;
+}
+
+function QRModal({ url, onClose }: QRModalProps) {
+  return (
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 text-emerald-600">
+          <QrCode size={20} />
+          <h3 className="text-base font-semibold">태블릿으로 스캔하세요</h3>
+        </div>
+        <p className="mt-3 text-sm text-zinc-600">
+          아래 QR 코드를 태블릿 카메라로 스캔하면 현재 작성 중인 HTML을 바로 확인할 수 있습니다.
+        </p>
+
+        <div className="mt-6 flex justify-center rounded-xl bg-white p-4">
+          <QRCodeSVG value={url} size={200} level="H" />
+        </div>
+
+        <div className="mt-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-3 text-xs text-zinc-600">
+          <p className="font-semibold">공유 링크:</p>
+          <p className="mt-1 break-all font-mono text-zinc-800">{url}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-4 w-full rounded-full bg-emerald-600 py-2 text-sm font-semibold text-white"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ValidationModal({ feedback, onClose, onApply }: ValidationModalProps) {
@@ -129,6 +176,9 @@ export default function ParticipantPage() {
   const [isValidating, setIsValidating] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [localExamples, setLocalExamples] = useState<LocalExampleItem[]>([]);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
 
   const getLocalExamplesKey = (participantId: string) => `localExamples:${participantId}`;
 
@@ -324,6 +374,31 @@ export default function ParticipantPage() {
     alert('도움 요청이 전송되었습니다!');
   }
 
+  async function handleShareQR() {
+    if (!participant) return;
+
+    setIsSharing(true);
+    try {
+      const response = await fetch('/api/share-html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId: participant.id, code }),
+      });
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        setShareUrl(data.url);
+        setIsQRModalOpen(true);
+      } else {
+        alert('QR 코드 생성에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      alert('QR 코드 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
   function downloadCode() {
     const blob = new Blob([code], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -401,6 +476,15 @@ export default function ParticipantPage() {
           </button>
           <button
             type="button"
+            onClick={handleShareQR}
+            disabled={isSharing}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode size={16} />}
+            QR 공유
+          </button>
+          <button
+            type="button"
             onClick={downloadCode}
             className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-700 shadow hover:bg-zinc-50"
           >
@@ -421,6 +505,10 @@ export default function ParticipantPage() {
           onClose={() => setValidationResult(null)}
           onApply={() => setCode(validationResult.correctedCode)}
         />
+      )}
+
+      {isQRModalOpen && shareUrl && (
+        <QRModal url={shareUrl} onClose={() => setIsQRModalOpen(false)} />
       )}
 
     </div>
