@@ -272,26 +272,51 @@ export default function ParticipantPage() {
     async (isFinal = false) => {
       if (!participant) return;
 
+      // 코드 사이즈 체크 (100KB 제한)
+      const codeSize = new Blob([code]).size;
+      if (codeSize > 100000) {
+        if (isFinal) {
+          alert(`코드가 너무 큽니다 (${(codeSize / 1024).toFixed(1)}KB / 100KB). 불필요한 내용을 줄여주세요.`);
+        }
+        return;
+      }
+
       setIsSaving(true);
-      await supabase.from('td_code_works').insert({
-        participant_id: participant.id,
-        title: isFinal ? '최종 작품' : '자동 저장',
-        code,
-        is_final: isFinal,
-      });
-
-      setIsSaving(false);
-      setLastSaved(new Date());
-
-      if (isFinal) {
-        const newExample: LocalExampleItem = {
-          id: crypto.randomUUID?.() ?? `${Date.now()}`,
-          title: `내 작품 (${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })})`,
+      try {
+        const { error } = await supabase.from('td_code_works').insert({
+          participant_id: participant.id,
+          title: isFinal ? '최종 작품' : '자동 저장',
           code,
-          savedAt: new Date().toISOString(),
-        };
-        const next = [...localExamples, newExample].slice(-6);
-        persistLocalExamples(participant.id, next);
+          is_final: isFinal,
+        });
+
+        if (error) {
+          console.error('Code save error:', error);
+          if (isFinal) {
+            alert('저장에 실패했습니다. 네트워크 연결을 확인하고 다시 시도해주세요.');
+          }
+          return;
+        }
+
+        setLastSaved(new Date());
+
+        if (isFinal) {
+          const newExample: LocalExampleItem = {
+            id: crypto.randomUUID?.() ?? `${Date.now()}`,
+            title: `내 작품 (${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })})`,
+            code,
+            savedAt: new Date().toISOString(),
+          };
+          const next = [...localExamples, newExample].slice(-6);
+          persistLocalExamples(participant.id, next);
+        }
+      } catch (error) {
+        console.error('Save exception:', error);
+        if (isFinal) {
+          alert('저장 중 오류가 발생했습니다.');
+        }
+      } finally {
+        setIsSaving(false);
       }
     },
     [code, localExamples, participant, persistLocalExamples]
@@ -369,9 +394,15 @@ export default function ParticipantPage() {
 
   async function handleRequestHelp() {
     if (!participant) return;
-    await requestHelp('도움이 필요합니다.', code);
-    setParticipant((prev) => (prev ? { ...prev, status: 'help_needed' } : prev));
-    alert('도움 요청이 전송되었습니다!');
+    
+    try {
+      await requestHelp('도움이 필요합니다.', code);
+      setParticipant((prev) => (prev ? { ...prev, status: 'help_needed' } : prev));
+      alert('도움 요청이 전송되었습니다!');
+    } catch (error) {
+      console.error('Help request error:', error);
+      alert('도움 요청 전송에 실패했습니다. 다시 시도해주세요.');
+    }
   }
 
   async function handleShareQR() {
