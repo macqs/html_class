@@ -1,6 +1,5 @@
 'use client';
 
-import { useRef } from 'react';
 import type { Participant, SeatLayout } from '@/types';
 
 interface SeatMapProps {
@@ -12,7 +11,6 @@ interface SeatMapProps {
 }
 
 export default function SeatMap({ layout, participants, onSeatClick, onSeatDoubleClick, onSeatRemove }: SeatMapProps) {
-  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const participantsBySeat = participants.reduce<Record<string, Participant>>((acc, current) => {
     acc[current.seat_position] = current;
     return acc;
@@ -50,17 +48,12 @@ export default function SeatMap({ layout, participants, onSeatClick, onSeatDoubl
                   onSeatRemove(participant);
                   return;
                 }
-                // Handle single vs double click
-                if (clickTimeoutRef.current) {
-                  clearTimeout(clickTimeoutRef.current);
-                  clickTimeoutRef.current = null;
-                  onSeatDoubleClick?.(participant);
-                } else {
-                  clickTimeoutRef.current = setTimeout(() => {
-                    clickTimeoutRef.current = null;
-                    onSeatClick?.(participant);
-                  }, 250);
-                }
+                onSeatClick?.(participant);
+              }}
+              onDoubleClick={(event) => {
+                if (!participant) return;
+                event.preventDefault();
+                onSeatDoubleClick?.(participant);
               }}
               disabled={!clickable}
               className={`relative rounded-lg py-5 text-sm font-semibold text-white transition ${getStatusColor(
