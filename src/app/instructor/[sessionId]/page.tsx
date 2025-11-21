@@ -35,6 +35,7 @@ export default function InstructorDashboardPage() {
   const [exampleSubjectFilter, setExampleSubjectFilter] = useState<'all' | '국어' | '사회' | '수학' | '과학'>('all');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [sharingParticipantId, setSharingParticipantId] = useState<string | null>(null);
+  const [helpMessage, setHelpMessage] = useState('');
 
   useEffect(() => {
     loadSession();
@@ -164,10 +165,16 @@ export default function InstructorDashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    const pendingRequest = helpRequests.find(
+      (request) => request.participant_id === participant.id && request.status === 'pending',
+    );
+
     if (data?.code) {
       setCodeSnapshot(data.code);
+      setHelpMessage(pendingRequest?.message ?? '');
     } else {
       alert('저장된 코드가 없습니다.');
+      setHelpMessage(pendingRequest?.message ?? '');
     }
 
     await resolveHelpRequestForParticipant(participant.id);
@@ -273,30 +280,6 @@ export default function InstructorDashboardPage() {
 
       {selectedParticipant && (
         <ParticipantModal participant={selectedParticipant} onClose={() => setSelectedParticipant(null)} />
-      )}
-
-      {codeSnapshot && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setCodeSnapshot('')}
-        >
-          <div
-            className="max-h-[80vh] w-full max-w-4xl overflow-auto rounded-2xl bg-white p-6"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3 className="mb-4 text-lg font-semibold">요청 당시 코드</h3>
-            <pre className="max-h-[60vh] overflow-auto rounded bg-zinc-100 p-4 text-sm text-zinc-800">
-              <code>{codeSnapshot}</code>
-            </pre>
-            <button
-              type="button"
-              onClick={() => setCodeSnapshot('')}
-              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-            >
-              닫기
-            </button>
-          </div>
-        </div>
       )}
 
       {isExamplePickerOpen && (
