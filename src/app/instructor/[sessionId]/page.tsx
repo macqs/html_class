@@ -35,7 +35,6 @@ export default function InstructorDashboardPage() {
   const [exampleSubjectFilter, setExampleSubjectFilter] = useState<'all' | '국어' | '사회' | '수학' | '과학'>('all');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [sharingParticipantId, setSharingParticipantId] = useState<string | null>(null);
-  const [helpMessage, setHelpMessage] = useState('');
 
   useEffect(() => {
     loadSession();
@@ -158,23 +157,26 @@ export default function InstructorDashboardPage() {
   }
 
   async function handleSeatDoubleClick(participant: Participant) {
-    const { data } = await supabase
-      .from('td_code_works')
-      .select('*')
-      .eq('participant_id', participant.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
     const pendingRequest = helpRequests.find(
       (request) => request.participant_id === participant.id && request.status === 'pending',
     );
 
-    if (data?.code) {
-      setCodeSnapshot(data.code);
-      setHelpMessage(pendingRequest?.message ?? '');
+    if (pendingRequest?.code_snapshot) {
+      setCodeSnapshot(pendingRequest.code_snapshot);
     } else {
-      alert('저장된 코드가 없습니다.');
-      setHelpMessage(pendingRequest?.message ?? '');
+      const { data } = await supabase
+        .from('td_code_works')
+        .select('*')
+        .eq('participant_id', participant.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.code) {
+        setCodeSnapshot(data.code);
+      } else {
+        alert('요청 당시 코드를 찾을 수 없습니다. 참가자에게 최신 코드를 저장하도록 안내해주세요.');
+      }
     }
 
     await resolveHelpRequestForParticipant(participant.id);
@@ -280,6 +282,30 @@ export default function InstructorDashboardPage() {
 
       {selectedParticipant && (
         <ParticipantModal participant={selectedParticipant} onClose={() => setSelectedParticipant(null)} />
+      )}
+
+      {codeSnapshot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setCodeSnapshot('')}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-4xl overflow-auto rounded-2xl bg-white p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="mb-4 text-lg font-semibold">요청 당시 코드</h3>
+            <pre className="max-h-[60vh] overflow-auto rounded bg-zinc-100 p-4 text-sm text-zinc-800">
+              <code>{codeSnapshot}</code>
+            </pre>
+            <button
+              type="button"
+              onClick={() => setCodeSnapshot('')}
+              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
       )}
 
       {isExamplePickerOpen && (
