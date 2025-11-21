@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useParams, useRouter } from 'next/navigation';
-import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, AlertTriangle } from 'lucide-react';
+import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Participant } from '@/types';
 import CodeEditor from '@/components/editor/CodeEditor';
@@ -30,74 +30,10 @@ interface ValidationFeedback {
   correctedCode: string;
 }
 
-function HelpRequestModal({ onClose, onSubmit, presets }: HelpRequestModalProps) {
-  const [value, setValue] = useState('');
-
-  function handlePreset(preset: string) {
-    setValue(preset);
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="mb-4 flex items-center gap-2 text-orange-600">
-          <AlertTriangle size={18} />
-          <h3 className="text-lg font-semibold text-zinc-900">어떤 도움이 필요하신가요?</h3>
-        </div>
-        <p className="text-sm text-zinc-600">상황을 구체적으로 적어주시면 강사님이 더 빠르게 도와드릴 수 있어요.</p>
-
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {presets.map((preset) => (
-            <button
-              type="button"
-              key={preset}
-              onClick={() => handlePreset(preset)}
-              className="rounded-xl border border-dashed border-zinc-300 px-4 py-3 text-left text-sm font-medium text-zinc-700 hover:border-orange-300 hover:bg-orange-50"
-            >
-              {preset}
-            </button>
-          ))}
-        </div>
-
-        <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-zinc-500">추가 설명</label>
-        <textarea
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          rows={4}
-          className="mt-1 w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-          placeholder="예: table 태그가 제대로 보이지 않아요"
-        />
-
-        <div className="mt-6 flex justify-end gap-2 text-sm font-semibold">
-          <button type="button" onClick={onClose} className="rounded-lg border border-zinc-200 px-4 py-2 text-zinc-600 hover:bg-zinc-50">
-            취소
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!value.trim()) return;
-              onSubmit(value.trim());
-            }}
-            className="rounded-lg bg-orange-500 px-4 py-2 text-white shadow hover:bg-orange-600"
-          >
-            도움 요청 보내기
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 interface ValidationModalProps {
   feedback: ValidationFeedback;
   onClose: () => void;
   onApply: () => void;
-}
-
-interface HelpRequestModalProps {
-  onClose: () => void;
-  onSubmit: (message: string) => void;
-  presets: string[];
 }
 
 function ValidationModal({ feedback, onClose, onApply }: ValidationModalProps) {
@@ -192,7 +128,6 @@ export default function ParticipantPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [localExamples, setLocalExamples] = useState<LocalExampleItem[]>([]);
 
   const getLocalExamplesKey = (participantId: string) => `localExamples:${participantId}`;
@@ -382,9 +317,9 @@ export default function ParticipantPage() {
     }
   }
 
-  async function handleRequestHelp(message: string) {
+  async function handleRequestHelp() {
     if (!participant) return;
-    await requestHelp(message, code);
+    await requestHelp('도움이 필요합니다.', code);
     setParticipant((prev) => (prev ? { ...prev, status: 'help_needed' } : prev));
     alert('도움 요청이 전송되었습니다!');
   }
@@ -450,7 +385,7 @@ export default function ParticipantPage() {
           </button>
           <button
             type="button"
-            onClick={() => setIsHelpModalOpen(true)}
+            onClick={() => handleRequestHelp()}
             className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-orange-600"
           >
             <HelpCircle size={16} />
@@ -488,16 +423,6 @@ export default function ParticipantPage() {
         />
       )}
 
-      {isHelpModalOpen && (
-        <HelpRequestModal
-          onClose={() => setIsHelpModalOpen(false)}
-          onSubmit={(message) => {
-            handleRequestHelp(message);
-            setIsHelpModalOpen(false);
-          }}
-          presets={['코드가 실행되지 않아요', '레이아웃이 깨졌어요', '이미지가 나오지 않아요', '검증 오류가 해결되지 않아요']}
-        />
-      )}
     </div>
   );
 }
