@@ -77,19 +77,19 @@ export function useInstructorRealtime(sessionId: string) {
     }
   }, []);
 
-  async function loadParticipants() {
-    const { data } = await supabase
-      .from('td_participants')
-      .select('*')
-      .eq('session_id', sessionId);
-    if (data) setParticipants(data as Participant[]);
-  }
+  async function loadHelpRequests(seedParticipants?: Participant[]) {
+    const baseParticipants = seedParticipants ?? participants;
+    if (!baseParticipants.length) {
+      setHelpRequests([]);
+      return;
+    }
 
-  async function loadHelpRequests() {
+    const participantIds = baseParticipants.map((participant) => participant.id);
+
     const { data, error } = await supabase
       .from('td_help_requests')
       .select('*')
-      .eq('session_id', sessionId)
+      .in('participant_id', participantIds)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -98,6 +98,19 @@ export function useInstructorRealtime(sessionId: string) {
     }
 
     if (data) setHelpRequests(data as HelpRequest[]);
+  }
+
+  async function loadParticipants() {
+    const { data } = await supabase
+      .from('td_participants')
+      .select('*')
+      .eq('session_id', sessionId);
+
+    if (data) {
+      const typed = data as Participant[];
+      setParticipants(typed);
+      await loadHelpRequests(typed);
+    }
   }
 
   async function loadActivityLogs() {
