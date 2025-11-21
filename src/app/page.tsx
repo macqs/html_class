@@ -22,6 +22,11 @@ const quickActions = [
     href: '/instructor/new-session',
   },
   {
+    title: '예제 관리',
+    description: '배포용 HTML 예제를 정리하고 신규 예제를 추가합니다.',
+    href: '/instructor/examples',
+  },
+  {
     title: '설계 문서',
     description: '요구사항과 DB/Realtime/Gemini 사양을 확인하세요.',
     href: '/설계 문서/README.md',
@@ -64,6 +69,12 @@ export default function Home() {
               className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-5 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
             >
               새 세션 만들기
+            </Link>
+            <Link
+              href="/instructor/examples"
+              className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-5 py-3 text-sm font-semibold text-orange-700 hover:bg-orange-50"
+            >
+              예제 관리
             </Link>
           </div>
         </section>
