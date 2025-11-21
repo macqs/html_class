@@ -272,13 +272,24 @@ export default function ParticipantPage() {
     async (isFinal = false) => {
       if (!participant) return;
 
-      // 코드 사이즈 체크 (100KB 제한)
+      // 코드 사이즈 체크 (1MB 소프트 제한, 2MB 하드 제한)
       const codeSize = new Blob([code]).size;
-      if (codeSize > 100000) {
+      const sizeMB = (codeSize / 1024 / 1024).toFixed(2);
+      
+      if (codeSize > 2097152) { // 2MB 하드 제한
         if (isFinal) {
-          alert(`코드가 너무 큽니다 (${(codeSize / 1024).toFixed(1)}KB / 100KB). 불필요한 내용을 줄여주세요.`);
+          alert(`코드가 너무 큽니다 (${sizeMB}MB / 2MB). 이미지는 외부 링크를 사용하거나 크기를 줄여주세요.`);
         }
         return;
+      }
+      
+      if (codeSize > 1048576 && isFinal) { // 1MB 경고
+        const confirmSave = confirm(
+          `코드 크기가 큽니다 (${sizeMB}MB).\n` +
+          `이미지가 포함되어 있다면 외부 링크 사용을 권장합니다.\n\n` +
+          `그래도 저장하시겠습니까?`
+        );
+        if (!confirmSave) return;
       }
 
       setIsSaving(true);

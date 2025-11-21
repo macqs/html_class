@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing participantId or code' }, { status: 400 });
     }
 
-    // 코드 사이즈 체크 (100KB 제한)
+    // 코드 사이즈 체크 (2MB 제한)
     const codeSize = Buffer.byteLength(code, 'utf8');
-    if (codeSize > 100000) {
-      return NextResponse.json({ success: false, error: 'Code size exceeds limit (100KB)' }, { status: 413 });
+    if (codeSize > 2097152) {
+      return NextResponse.json({ success: false, error: 'Code size exceeds limit (2MB)' }, { status: 413 });
     }
 
     const supabase = await createClient();

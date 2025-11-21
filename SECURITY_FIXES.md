@@ -93,22 +93,33 @@ const saveCode = useCallback(
 
 ---
 
-### 3. 코드 사이즈 제한 추가
+### 3. 코드 사이즈 제한 추가 (교육 환경 고려)
 **파일**: `src/app/participant/[sessionId]/page.tsx`
 
-**추가 코드**:
+**추가 코드** (개선됨):
 ```tsx
-const MAX_CODE_SIZE = 100000; // 100KB
-
 const saveCode = useCallback(
   async (isFinal = false) => {
     if (!participant) return;
 
-    // 코드 사이즈 체크
+    // 코드 사이즈 체크 (1MB 소프트 제한, 2MB 하드 제한)
     const codeSize = new Blob([code]).size;
-    if (codeSize > MAX_CODE_SIZE) {
-      alert(`코드가 너무 큽니다 (${(codeSize / 1024).toFixed(1)}KB / 100KB). 불필요한 내용을 줄여주세요.`);
+    const sizeMB = (codeSize / 1024 / 1024).toFixed(2);
+    
+    if (codeSize > 2097152) { // 2MB 하드 제한
+      if (isFinal) {
+        alert(`코드가 너무 큽니다 (${sizeMB}MB / 2MB). 이미지는 외부 링크를 사용하거나 크기를 줄여주세요.`);
+      }
       return;
+    }
+    
+    if (codeSize > 1048576 && isFinal) { // 1MB 경고
+      const confirmSave = confirm(
+        `코드 크기가 큽니다 (${sizeMB}MB).\n` +
+        `이미지가 포함되어 있다면 외부 링크 사용을 권장합니다.\n\n` +
+        `그래도 저장하시겠습니까?`
+      );
+      if (!confirmSave) return;
     }
 
     setIsSaving(true);
@@ -117,6 +128,12 @@ const saveCode = useCallback(
   [code, localExamples, participant, persistLocalExamples]
 );
 ```
+
+**교육적 고려사항**:
+- **100KB → 1MB 소프트 제한**: 순수 HTML 약 30,000줄 작성 가능
+- **2MB 하드 제한**: 작은 이미지 여러 개 포함 가능
+- **경고 방식**: 자동 저장은 조용히 실패, 수동 저장은 확인 대화상자
+- **사용자 친화적**: 학생들이 열심히 작성한 코드를 막지 않음
 
 ---
 
