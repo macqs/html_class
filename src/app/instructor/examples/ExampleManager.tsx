@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, ChevronDown, Edit2, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { BookOpen, ChevronDown, Edit2, Eye, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 
 import type { ExampleCode } from '@/types';
 import { supabase } from '@/lib/supabase';
+import PreviewFrame from '@/components/editor/PreviewFrame';
 
 interface ExampleManagerProps {
   initialExamples: ExampleCode[];
@@ -36,6 +37,7 @@ export default function ExampleManager({ initialExamples }: ExampleManagerProps)
   const [examples, setExamples] = useState(initialExamples);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExample, setEditingExample] = useState<ExampleCode | null>(null);
+  const [previewExample, setPreviewExample] = useState<ExampleCode | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -67,6 +69,14 @@ export default function ExampleManager({ initialExamples }: ExampleManagerProps)
   function handleFieldChange(event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function openPreviewModal(example: ExampleCode) {
+    setPreviewExample(example);
+  }
+
+  function closePreviewModal() {
+    setPreviewExample(null);
   }
 
   async function refreshExamples() {
@@ -199,6 +209,13 @@ export default function ExampleManager({ initialExamples }: ExampleManagerProps)
                   </button>
                   <button
                     type="button"
+                    onClick={() => openPreviewModal(example)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                  >
+                    <Eye size={14} /> 미리보기
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleDelete(example)}
                     className="flex items-center justify-center rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"
                   >
@@ -308,6 +325,38 @@ export default function ExampleManager({ initialExamples }: ExampleManagerProps)
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {previewExample && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closePreviewModal}>
+          <div className="w-full max-w-5xl rounded-2xl bg-white p-6" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-blue-600">예제 미리보기</p>
+                <h3 className="text-2xl font-bold text-slate-900">{previewExample.title}</h3>
+                {previewExample.description && <p className="mt-1 text-sm text-slate-600">{previewExample.description}</p>}
+              </div>
+              <button type="button" onClick={closePreviewModal} className="rounded-full p-1 text-slate-400 hover:bg-slate-100">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="mb-2 text-sm font-semibold text-slate-600">원본 코드</p>
+                <pre className="max-h-[28rem] overflow-auto rounded-lg bg-white/70 p-3 font-mono text-xs leading-relaxed text-slate-800">
+                  <code>{previewExample.code}</code>
+                </pre>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-semibold text-slate-600">렌더링 미리보기</p>
+                <div className="h-[28rem] rounded-2xl border border-slate-200">
+                  <PreviewFrame code={previewExample.code} />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
