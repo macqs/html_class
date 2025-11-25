@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>손가락 숫자</title>
+    <style>
+        /* [선생님 수정 포인트 1] 테마 */
+        :root {
+            --bg-color: #fdf4ff;        /* 배경색 (연보라) */
+            --hand-color: #fba;         /* 손 피부색 */
+            --btn-bg: #d946ef;          /* 버튼색 */
+            --text-color: #86198f;      /* 글자색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { margin: 10px 0; font-size: 2rem; }
+
+        .hand-container {
+            width: 300px;
+            height: 300px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            font-size: 150px;
+            border: 5px solid var(--btn-bg);
+        }
+
+        .choices {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .choice-btn {
+            background: white;
+            border: 2px solid var(--btn-bg);
+            color: var(--btn-bg);
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .choice-btn:hover {
+            background: var(--btn-bg);
+            color: white;
+        }
+
+        .choice-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .choice-btn.correct {
+            background: #22c55e;
+            color: white;
+            border-color: #22c55e;
+        }
+        
+        .choice-btn.wrong {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+            animation: shake 0.4s;
+        }
+
+        .feedback {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🖐️ 손가락은 몇 개? <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학01-01] 신체로 수 표현하기</span></h1>
+    <p>손가락 개수에 맞는 숫자를 찾아보세요.</p>
+
+    <div class="feedback" id="feedbackMsg"></div>
+
+    <div class="hand-container" id="handDisplay">
+        <!-- 손가락 이모지가 여기에 나옵니다 -->
+        ✊
+    </div>
+
+    <div class="choices" id="choiceArea">
+        <!-- 숫자 버튼들이 여기에 나옵니다 -->
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 손가락 모양 목록 (0~5) */
+        // 0: 주먹, 1: 검지, 2: 브이, 3: 세손가락(OK제스처 변형 등), 4: 네손가락, 5: 보자기
+        // 이모지로 표현 가능한 것만 사용합니다.
+        const handSigns = [
+            { num: 0, emoji: "✊" },
+            { num: 1, emoji: "👆" },
+            { num: 2, emoji: "✌️" },
+            { num: 3, emoji: "🤟" }, // 3을 표현하는 수화나 제스처
+            { num: 4, emoji: "🖖" }, // 4와 비슷한 제스처
+            { num: 5, emoji: "🖐️" }
+        ];
+
+        let currentAnswer = 0;
+
+        function initGame() {
+            nextProblem();
+        }
+
+        function nextProblem() {
+            document.getElementById('feedbackMsg').innerText = "";
+            
+            // 랜덤 문제 (0~5)
+            const problem = handSigns[Math.floor(Math.random() * handSigns.length)];
+            currentAnswer = problem.num;
+
+            document.getElementById('handDisplay').innerText = problem.emoji;
+
+            // 보기 생성 (정답 포함 3개)
+            generateChoices(currentAnswer);
+        }
+
+        function generateChoices(answer) {
+            const choiceArea = document.getElementById('choiceArea');
+            choiceArea.innerHTML = '';
+            
+            // 보기 숫자 3개 만들기 (정답 포함)
+            let options = new Set();
+            options.add(answer);
+            
+            while(options.size < 3) {
+                const r = Math.floor(Math.random() * 6); // 0~5
+                options.add(r);
+            }
+            
+            // 배열로 변환 후 섞기
+            const optionArr = Array.from(options).sort(() => Math.random() - 0.5);
+
+            optionArr.forEach(num => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.innerText = num;
+                btn.onclick = () => checkAnswer(btn, num);
+                choiceArea.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(btn, num) {
+            const feedback = document.getElementById('feedbackMsg');
+            
+            if (num === currentAnswer) {
+                btn.classList.add('correct');
+                feedback.innerText = "딩동댕! 정답입니다! 🎉";
+                feedback.style.color = "#15803d";
+                playSuccess();
+                setTimeout(nextProblem, 1500);
+            } else {
+                btn.classList.add('wrong');
+                feedback.innerText = "다시 세어볼까요? 🤔";
+                feedback.style.color = "#b91c1c";
+                playWrong();
+                setTimeout(() => btn.classList.remove('wrong'), 500);
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

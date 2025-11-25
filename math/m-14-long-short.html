@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>길이 비교하기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #ecfccb;        /* 배경색 */
+            --bar-color: #84cc16;       /* 막대 기본색 */
+            --text-color: #3f6212;      /* 글자색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: var(--text-color); }
+
+        .question {
+            background: white;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4d7c0f;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .comparison-area {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            width: 100%;
+            max-width: 600px;
+            align-items: flex-start; /* 왼쪽 정렬로 길이 비교 명확하게 */
+            padding: 20px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 20px;
+            min-height: 300px;
+            justify-content: center;
+        }
+
+        .length-item {
+            height: 80px;
+            border-radius: 15px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 4px solid #bef264;
+            width: 100px; /* 초기값 */
+            position: relative;
+        }
+
+        .length-item:hover {
+            transform: translateX(10px);
+            border-color: #65a30d;
+        }
+        
+        .length-item.correct {
+            background-color: #dcfce7;
+            border-color: #22c55e;
+        }
+
+        .length-item.wrong {
+            background-color: #fee2e2;
+            border-color: #ef4444;
+            animation: shake 0.4s;
+        }
+
+        .item-content {
+            font-size: 2.5rem;
+            margin-right: 10px;
+        }
+        
+        /* 물건의 몸통(길이)을 표현하는 패턴 */
+        .item-body {
+            flex-grow: 1;
+            height: 60%;
+            background-image: linear-gradient(45deg, #d9f99d 25%, transparent 25%, transparent 50%, #d9f99d 50%, #d9f99d 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+            border-radius: 10px;
+            opacity: 0.5;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📏 길이 비교하기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학03-01] 길이 비교 (길다/짧다)</span></h1>
+    <div class="question" id="questionText">더 긴 것은?</div>
+
+    <div class="comparison-area">
+        <div class="length-item" id="item1" onclick="checkAnswer(1)">
+            <span class="item-content" id="icon1">✏️</span>
+            <div class="item-body"></div>
+        </div>
+        <div class="length-item" id="item2" onclick="checkAnswer(2)">
+            <span class="item-content" id="icon2">✏️</span>
+            <div class="item-body"></div>
+        </div>
+    </div>
+
+    <button onclick="nextProblem()" style="margin-top:30px; padding:10px 20px; font-size:1.2rem; background:#65a30d; color:white; border:none; border-radius:10px; cursor:pointer;">다음 문제 ➡️</button>
+
+    <script>
+        /* [선생님 수정 포인트 2] 비교할 물건 쌍 */
+        const items = [
+            { icon: "✏️", name: "연필" },
+            { icon: "🥖", name: "바게트" },
+            { icon: "🐛", name: "애벌레" },
+            { icon: "🥒", name: "오이" },
+            { icon: "🌭", name: "소시지" }
+        ];
+
+        let currentMode = "long"; // "long" (긴 것) or "short" (짧은 것)
+        let len1 = 0, len2 = 0;
+
+        function initGame() {
+            nextProblem();
+        }
+
+        function nextProblem() {
+            // 모드 랜덤
+            currentMode = Math.random() > 0.5 ? "long" : "short";
+            document.getElementById('questionText').innerText = 
+                currentMode === "long" ? "더 긴 것은?" : "더 짧은 것은?";
+
+            // 물건 랜덤 선택
+            const item = items[Math.floor(Math.random() * items.length)];
+            document.getElementById('icon1').innerText = item.icon;
+            document.getElementById('icon2').innerText = item.icon;
+
+            // 길이 랜덤 설정 (100px ~ 500px)
+            // 두 길이가 확실히 차이나도록 설정 (최소 100px 차이)
+            len1 = Math.floor(Math.random() * 300) + 150; 
+            do {
+                len2 = Math.floor(Math.random() * 300) + 150;
+            } while (Math.abs(len1 - len2) < 100);
+
+            // 길이 적용
+            const el1 = document.getElementById('item1');
+            const el2 = document.getElementById('item2');
+            
+            el1.style.width = len1 + 'px';
+            el2.style.width = len2 + 'px';
+            
+            // 스타일 초기화
+            el1.className = 'length-item';
+            el2.className = 'length-item';
+        }
+
+        function checkAnswer(choice) {
+            const el1 = document.getElementById('item1');
+            const el2 = document.getElementById('item2');
+            
+            // 이미 정답 맞춘 후인지 확인 (클래스로 체크)
+            if(el1.classList.contains('correct') || el2.classList.contains('correct')) return;
+
+            let isCorrect = false;
+            if(currentMode === "long") {
+                if(choice === 1 && len1 > len2) isCorrect = true;
+                if(choice === 2 && len2 > len1) isCorrect = true;
+            } else {
+                if(choice === 1 && len1 < len2) isCorrect = true;
+                if(choice === 2 && len2 < len1) isCorrect = true;
+            }
+
+            if(isCorrect) {
+                // 정답
+                if(choice === 1) el1.classList.add('correct');
+                else el2.classList.add('correct');
+                playSuccess();
+                setTimeout(nextProblem, 1500);
+            } else {
+                // 오답
+                if(choice === 1) el1.classList.add('wrong');
+                else el2.classList.add('wrong');
+                playWrong();
+                setTimeout(() => {
+                    el1.classList.remove('wrong');
+                    el2.classList.remove('wrong');
+                }, 500);
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.setValueAtTime(800, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

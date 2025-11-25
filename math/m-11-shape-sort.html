@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모양 분류함</title>
+    <style>
+        /* [선생님 수정 포인트 1] 색상 및 스타일 */
+        :root {
+            --bg-color: #f0fdf4;
+            --shape-color-1: #ef4444; /* 동그라미 색 */
+            --shape-color-2: #3b82f6; /* 세모 색 */
+            --shape-color-3: #eab308; /* 네모 색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        h1 { margin-bottom: 20px; color: #166534; }
+
+        .bins-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            justify-content: space-around;
+            margin-bottom: 40px;
+        }
+
+        .bin {
+            width: 150px;
+            height: 200px;
+            border: 5px dashed #cbd5e1;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 20px;
+            background-color: rgba(255,255,255,0.5);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .bin-label {
+            font-size: 5rem; /* 분류 기준 모양 */
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .bin.highlight {
+            background-color: #dcfce7;
+            border-color: #22c55e;
+            transform: scale(1.05);
+        }
+
+        .items-area {
+            width: 100%;
+            height: 150px;
+            background: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+            position: fixed;
+            bottom: 0;
+        }
+
+        .shape-item {
+            width: 80px;
+            height: 80px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem; /* 이모지 크기 */
+            transition: transform 0.2s;
+            touch-action: none;
+        }
+        
+        .shape-item:active {
+            cursor: grabbing;
+            transform: scale(1.2);
+            z-index: 1000;
+        }
+
+        /* 도형별 스타일 (CSS로 그릴 경우) */
+        .circle { border-radius: 50%; background: var(--shape-color-1); }
+        .triangle { 
+            width: 0; height: 0; 
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-bottom: 80px solid var(--shape-color-2);
+            background: transparent;
+        }
+        .square { background: var(--shape-color-3); }
+
+    </style>
+</head>
+<body>
+
+    <h1>🔳 모양 끼리끼리 모아요 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학02-01] 모양에 따라 분류하기</span></h1>
+    <p>모양에 맞는 상자에 넣어주세요.</p>
+
+    <div class="bins-container">
+        <!-- [선생님 수정 포인트 2] 분류 바구니 설정 -->
+        <!-- type은 아이템의 type과 일치해야 합니다 -->
+        <div class="bin" data-type="circle">
+            <div class="bin-label">🔴</div>
+            <span style="font-weight:bold; color:#999;">동그라미</span>
+        </div>
+        <div class="bin" data-type="triangle">
+            <div class="bin-label">🔺</div>
+            <span style="font-weight:bold; color:#999;">세모</span>
+        </div>
+        <div class="bin" data-type="square">
+            <div class="bin-label">🟥</div>
+            <span style="font-weight:bold; color:#999;">네모</span>
+        </div>
+    </div>
+
+    <div class="items-area" id="itemSource">
+        <!-- 도형들이 여기에 생성됩니다 -->
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 3] 분류할 도형 아이템들 */
+        const items = [
+            { icon: "🍊", type: "circle" },
+            { icon: "🍕", type: "triangle" },
+            { icon: "📦", type: "square" },
+            { icon: "⚽", type: "circle" },
+            { icon: "📐", type: "triangle" },
+            { icon: "📺", type: "square" },
+            { icon: "🍪", type: "circle" },
+            { icon: "🥪", type: "triangle" },
+            { icon: "🎲", type: "square" }
+        ];
+
+        function initGame() {
+            const source = document.getElementById('itemSource');
+            items.sort(() => Math.random() - 0.5);
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'shape-item';
+                div.innerText = item.icon;
+                div.dataset.type = item.type;
+                
+                setupDrag(div);
+                source.appendChild(div);
+            });
+        }
+
+        function setupDrag(el) {
+            let startX, startY;
+            
+            el.addEventListener('mousedown', start);
+            el.addEventListener('touchstart', start, {passive: false});
+
+            function start(e) {
+                e.preventDefault();
+                const evt = e.touches ? e.touches[0] : e;
+                startX = evt.clientX;
+                startY = evt.clientY;
+                
+                const rect = el.getBoundingClientRect();
+                el.style.position = 'fixed';
+                el.style.left = rect.left + 'px';
+                el.style.top = rect.top + 'px';
+                el.style.zIndex = 1000;
+
+                document.addEventListener('mousemove', move);
+                document.addEventListener('mouseup', end);
+                document.addEventListener('touchmove', move, {passive: false});
+                document.addEventListener('touchend', end);
+            }
+
+            function move(e) {
+                e.preventDefault();
+                const evt = e.touches ? e.touches[0] : e;
+                el.style.left = (evt.clientX - el.offsetWidth/2) + 'px';
+                el.style.top = (evt.clientY - el.offsetHeight/2) + 'px';
+            }
+
+            function end(e) {
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('mouseup', end);
+                document.removeEventListener('touchmove', move);
+                document.removeEventListener('touchend', end);
+                
+                // 드롭 체크
+                const rect = el.getBoundingClientRect();
+                const centerX = rect.left + rect.width/2;
+                const centerY = rect.top + rect.height/2;
+                
+                let dropped = false;
+                document.querySelectorAll('.bin').forEach(bin => {
+                    const bRect = bin.getBoundingClientRect();
+                    if(centerX > bRect.left && centerX < bRect.right &&
+                       centerY > bRect.top && centerY < bRect.bottom) {
+                        
+                        if(bin.dataset.type === el.dataset.type) {
+                            // 정답
+                            dropped = true;
+                            playSuccess();
+                            bin.classList.add('highlight');
+                            setTimeout(() => bin.classList.remove('highlight'), 300);
+                            
+                            el.style.position = 'relative';
+                            el.style.left = 'auto';
+                            el.style.top = 'auto';
+                            el.style.zIndex = 'auto';
+                            
+                            // 이벤트 제거 (고정)
+                            el.removeEventListener('mousedown', start);
+                            el.removeEventListener('touchstart', start);
+                            
+                            bin.appendChild(el);
+                            checkWin();
+                        } else {
+                            playWrong();
+                        }
+                    }
+                });
+
+                if(!dropped) {
+                    // 원래 자리로 (간단히 소스 영역으로 복귀)
+                    el.style.position = 'relative';
+                    el.style.left = 'auto';
+                    el.style.top = 'auto';
+                    el.style.zIndex = 'auto';
+                    document.getElementById('itemSource').appendChild(el);
+                }
+            }
+        }
+
+        function checkWin() {
+            const remaining = document.getElementById('itemSource').children.length;
+            if(remaining === 0) {
+                setTimeout(() => alert("모든 도형을 잘 정리했네요! 훌륭해요! 🎉"), 500);
+            }
+        }
+        
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

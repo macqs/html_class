@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뒤죽박죽 문장 정렬</title>
+    <style>
+        /* [선생님 수정 포인트 1] 디자인 */
+        :root {
+            --bg-color: #fdf2f8;        /* 배경색 */
+            --card-bg: #ffffff;         /* 단어 카드 배경 */
+            --slot-bg: #fce7f3;         /* 빈칸 배경 */
+            --btn-color: #db2777;       /* 버튼 색상 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: #831843; margin-bottom: 30px; }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .image-hint {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        .drop-area {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            min-height: 80px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            padding: 10px;
+            background: #fff1f2;
+            border-radius: 15px;
+            border: 3px dashed #fda4af;
+        }
+
+        .word-pool {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            min-height: 80px;
+        }
+
+        .word-card {
+            background: var(--card-bg);
+            border: 2px solid #f472b6;
+            color: #831843;
+            padding: 10px 25px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .word-card:hover {
+            transform: translateY(-3px);
+            background-color: #fdf2f8;
+        }
+
+        .word-card.placed {
+            background-color: #db2777;
+            color: white;
+        }
+
+        .check-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            background-color: var(--btn-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .check-btn:hover { background-color: #be185d; }
+
+        .feedback {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            height: 30px;
+        }
+        .feedback.success { color: #16a34a; }
+        .feedback.error { color: #dc2626; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧩 문장 기차 만들기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[4국어04-03] 낱말 배열 문장 만들기</span></h1>
+
+    <div class="game-container">
+        <div class="image-hint" id="hintIcon">🍎</div>
+        
+        <p style="color:#666; margin-bottom:10px;">단어를 순서대로 눌러서 문장을 완성하세요.</p>
+
+        <!-- 문장이 완성되는 곳 -->
+        <div class="drop-area" id="sentenceArea">
+            <!-- 선택한 단어가 여기로 이동 -->
+        </div>
+
+        <!-- 단어 보기 -->
+        <div class="word-pool" id="wordPool">
+            <!-- 단어 카드 생성 -->
+        </div>
+
+        <button class="check-btn" onclick="checkAnswer()">정답 확인 ✅</button>
+        <div class="feedback" id="feedbackMsg"></div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button onclick="nextProblem()" style="padding:10px; border-radius:5px; border:1px solid #ccc;">다음 문제 ➡️</button>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 문장 데이터 */
+        // words: 올바른 순서대로 단어 입력 (화면엔 섞여서 나옴)
+        const problems = [
+            { icon: "🍎", words: ["나는", "사과를", "먹어요"] },
+            { icon: "🚌", words: ["학교에", "버스를", "타고", "가요"] },
+            { icon: "⚽", words: ["친구와", "축구를", "해요"] },
+            { icon: "🐶", words: ["강아지가", "멍멍", "짖어요"] },
+            { icon: "🛌", words: ["밤에는", "잠을", "자요"] }
+        ];
+
+        let currentProblem = null;
+        let userSentence = [];
+
+        function initGame() {
+            nextProblem();
+        }
+
+        function nextProblem() {
+            document.getElementById('feedbackMsg').innerText = "";
+            document.getElementById('sentenceArea').innerHTML = "";
+            userSentence = [];
+
+            // 랜덤 문제 선택
+            currentProblem = problems[Math.floor(Math.random() * problems.length)];
+            document.getElementById('hintIcon').innerText = currentProblem.icon;
+
+            // 단어 섞기
+            let shuffledWords = [...currentProblem.words].sort(() => Math.random() - 0.5);
+
+            const pool = document.getElementById('wordPool');
+            pool.innerHTML = '';
+
+            shuffledWords.forEach((word, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'word-card';
+                btn.innerText = word;
+                btn.onclick = () => selectWord(btn, word);
+                pool.appendChild(btn);
+            });
+        }
+
+        function selectWord(btn, word) {
+            // 이미 선택된 단어는 취소(돌려놓기) 기능
+            if (btn.parentElement.id === 'sentenceArea') {
+                document.getElementById('wordPool').appendChild(btn);
+                btn.classList.remove('placed');
+                // 배열에서 제거
+                const idx = userSentence.indexOf(word);
+                if (idx > -1) userSentence.splice(idx, 1);
+            } else {
+                // 선택하여 문장 영역으로 이동
+                document.getElementById('sentenceArea').appendChild(btn);
+                btn.classList.add('placed');
+                userSentence.push(word);
+            }
+        }
+
+        function checkAnswer() {
+            const feedback = document.getElementById('feedbackMsg');
+            
+            // 배열 비교
+            const correctSentence = currentProblem.words.join('');
+            const userString = userSentence.join('');
+
+            if (correctSentence === userString) {
+                feedback.innerText = "참 잘했어요! 문장이 완성되었어요! 🎉";
+                feedback.className = "feedback success";
+                playSuccess();
+            } else {
+                feedback.innerText = "순서가 조금 이상해요. 다시 해볼까요? 🤔";
+                feedback.className = "feedback error";
+                playWrong();
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

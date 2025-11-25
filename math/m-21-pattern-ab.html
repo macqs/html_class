@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AB 패턴 채우기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #fdf2f8;
+            --box-border: #f472b6;
+            --highlight: #db2777;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: #831843; margin-bottom: 20px; }
+
+        .pattern-container {
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 800px;
+        }
+
+        .pattern-item {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #fbcfe8;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            background-color: #fff;
+        }
+
+        .pattern-item.empty {
+            background-color: #fce7f3;
+            border-style: dashed;
+            border-color: var(--highlight);
+            color: var(--highlight);
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        
+        .pattern-item.filled {
+            background-color: #dcfce7; /* 정답 채워짐 */
+            border-color: #22c55e;
+        }
+
+        .options-area {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .option-btn {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border: 4px solid var(--box-border);
+            border-radius: 20px;
+            font-size: 3.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            transform: translateY(-5px);
+            background-color: #fdf2f8;
+        }
+
+        .option-btn.wrong {
+            animation: shake 0.4s;
+            border-color: #ef4444;
+            background-color: #fee2e2;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🚦 규칙을 찾아보세요 (AB 패턴) <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학04-01] 규칙 찾기 (AB)</span></h1>
+    <p style="color:#666; margin-bottom:20px;">물음표 상자에 들어갈 모양은 무엇일까요?</p>
+
+    <div class="pattern-container" id="patternRow">
+        <!-- 패턴 아이템이 여기에 생성됩니다 -->
+    </div>
+
+    <div class="options-area" id="options">
+        <!-- 선택 버튼이 여기에 생성됩니다 -->
+    </div>
+
+    <button onclick="initGame()" style="margin-top:40px; padding:10px 20px; background:#db2777; color:white; border:none; border-radius:10px; cursor:pointer;">다음 문제 ➡️</button>
+
+    <script>
+        /* [선생님 수정 포인트 2] 패턴에 사용할 아이템 쌍 (A, B) */
+        const pairs = [
+            { A: "🍎", B: "🍌" },
+            { A: "🐶", B: "🦴" },
+            { A: "☀️", B: "☁️" },
+            { A: "⭕", B: "❌" },
+            { A: "🔴", B: "🔵" }
+        ];
+
+        let currentPair = null;
+        let missingIndex = -1; // 정답 위치
+        let correctAnswer = "";
+
+        function initGame() {
+            const row = document.getElementById('patternRow');
+            const opts = document.getElementById('options');
+            row.innerHTML = '';
+            opts.innerHTML = '';
+
+            // 랜덤 쌍 선택
+            currentPair = pairs[Math.floor(Math.random() * pairs.length)];
+            
+            // 패턴 길이 (홀수면 마지막이 A, 짝수면 B)
+            // 여기선 5~7개 정도로 설정
+            const length = 6; 
+            
+            // 패턴 생성 (A B A B ...)
+            let pattern = [];
+            for(let i=0; i<length; i++) {
+                pattern.push(i % 2 === 0 ? currentPair.A : currentPair.B);
+            }
+
+            // 빈칸 위치 설정 (마지막 혹은 마지막 전)
+            missingIndex = length - 1; // 마지막을 빈칸으로
+            correctAnswer = pattern[missingIndex];
+
+            // 화면에 그리기
+            pattern.forEach((char, index) => {
+                const div = document.createElement('div');
+                div.className = 'pattern-item';
+                
+                if (index === missingIndex) {
+                    div.classList.add('empty');
+                    div.innerText = "?";
+                    div.id = 'targetSlot';
+                } else {
+                    div.innerText = char;
+                }
+                row.appendChild(div);
+            });
+
+            // 보기 생성 (A와 B 둘 중 하나 고르기)
+            // 순서 섞기
+            const choices = [currentPair.A, currentPair.B].sort(() => Math.random() - 0.5);
+            
+            choices.forEach(char => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = char;
+                btn.onclick = () => checkAnswer(btn, char);
+                opts.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(btn, selected) {
+            const slot = document.getElementById('targetSlot');
+            
+            if (selected === correctAnswer) {
+                // 정답
+                slot.innerText = selected;
+                slot.classList.remove('empty');
+                slot.classList.add('filled');
+                
+                playSuccess();
+                
+                setTimeout(() => {
+                    alert("정답입니다! 규칙을 잘 찾았네요! 🎉");
+                    initGame();
+                }, 500);
+            } else {
+                // 오답
+                btn.classList.add('wrong');
+                playWrong();
+                setTimeout(() => btn.classList.remove('wrong'), 400);
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자모음 따라 쓰기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 색상 및 스타일 설정 */
+        :root {
+            --bg-color: #fdf2f8;        /* 배경색 (연한 분홍) */
+            --canvas-bg: #ffffff;       /* 쓰기 영역 배경색 */
+            --guide-color: #e5e7eb;     /* 글자 밑그림 색상 */
+            --stroke-color: #db2777;    /* 펜 색상 (진한 분홍) */
+            --btn-color: #be185d;       /* 버튼 색상 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+            touch-action: none; /* 모바일 스크롤 방지 */
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            color: #831843;
+        }
+
+        .controls-top {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .char-btn {
+            background: white;
+            border: 2px solid #fbcfe8;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            color: #831843;
+        }
+
+        .char-btn.active {
+            background: var(--btn-color);
+            color: white;
+            border-color: var(--btn-color);
+        }
+
+        .canvas-container {
+            position: relative;
+            background: var(--canvas-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            padding: 20px;
+            border: 5px solid white;
+        }
+
+        canvas {
+            cursor: crosshair;
+            border-radius: 10px;
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px),
+                              linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .guide-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 250px;
+            color: var(--guide-color);
+            pointer-events: none;
+            font-family: 'Malgun Gothic', sans-serif;
+            font-weight: bold;
+            z-index: 0;
+        }
+
+        .controls-bottom {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            background-color: var(--btn-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.secondary {
+            background-color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>✍️ 한글 자음 따라 쓰기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2국어03-01] 글자 획순 바르게 쓰기</span></h1>
+        <p>순서대로 예쁘게 따라 써보세요.</p>
+    </div>
+
+    <div class="controls-top" id="charButtons">
+        <!-- 글자 선택 버튼이 여기에 생성됩니다 -->
+    </div>
+
+    <div class="canvas-container">
+        <div id="guideText" class="guide-text">ㄱ</div>
+        <canvas id="drawingCanvas" width="350" height="350"></canvas>
+    </div>
+
+    <div class="controls-bottom">
+        <button class="action-btn" onclick="clearCanvas()">지우기 🧹</button>
+        <button class="action-btn secondary" onclick="nextChar()">다음 글자 ➡️</button>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 따라 쓰기 할 글자 목록 */
+        const characters = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+        // 예: const characters = ['가', '나', '다', '라', '마']; 로 바꾸면 글자 쓰기가 됩니다.
+
+        let currentIndex = 0;
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const guideText = document.getElementById('guideText');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // 초기화
+        function init() {
+            createButtons();
+            setChar(0);
+            setupCanvas();
+        }
+
+        // 버튼 생성
+        function createButtons() {
+            const container = document.getElementById('charButtons');
+            container.innerHTML = '';
+            characters.forEach((char, index) => {
+                const btn = document.createElement('button');
+                btn.className = `char-btn ${index === 0 ? 'active' : ''}`;
+                btn.innerText = char;
+                btn.onclick = () => setChar(index);
+                container.appendChild(btn);
+            });
+        }
+
+        // 글자 설정
+        function setChar(index) {
+            currentIndex = index;
+            guideText.innerText = characters[index];
+            clearCanvas();
+            
+            // 버튼 활성화 상태 업데이트
+            document.querySelectorAll('.char-btn').forEach((btn, i) => {
+                if (i === index) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        }
+
+        // 다음 글자로
+        function nextChar() {
+            let nextIndex = currentIndex + 1;
+            if (nextIndex >= characters.length) nextIndex = 0;
+            setChar(nextIndex);
+        }
+
+        // 캔버스 설정
+        function setupCanvas() {
+            ctx.lineWidth = 15;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--stroke-color').trim();
+
+            // 마우스 이벤트
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // 터치 이벤트 (모바일)
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getPos(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const [x, y] = getPos(e);
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            [lastX, lastY] = [x, y];
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return [clientX - rect.left, clientY - rect.top];
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault(); // 스크롤 방지
+            startDrawing(e);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            draw(e);
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        init();
+    </script>
+</body>
+</html>

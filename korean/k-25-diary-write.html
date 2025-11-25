@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그림 일기 완성하기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #fff7ed;
+            --diary-paper: #ffffff;
+            --line-color: #cbd5e1;
+            --accent-color: #f97316;
+        }
+
+        body {
+            font-family: 'Nanum Pen Script', 'Malgun Gothic', sans-serif; /* 손글씨 느낌 폰트 */
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');
+
+        h1 {
+            color: #9a3412;
+            font-family: 'Nanum Pen Script', cursive;
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .diary-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--diary-paper);
+            border: 1px solid #e5e7eb;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+            padding: 40px;
+            position: relative;
+            /* 종이 질감 효과 */
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 100% 40px; /* 줄 간격 */
+            line-height: 40px;
+        }
+        
+        /* 그림 그리는 영역 (위쪽) */
+        .drawing-area {
+            width: 100%;
+            height: 250px;
+            border: 2px solid #94a3b8;
+            margin-bottom: 20px;
+            background: white; /* 줄무늬 없음 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8rem;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: background 0.3s;
+            position: relative;
+        }
+        
+        .drawing-area:hover { background-color: #f8fafc; }
+        
+        .date-weather-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: white;
+            padding: 5px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+        /* 선택 팝업 */
+        .popup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .popup-content {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .option-card {
+            border: 2px solid #fed7aa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .option-card:hover { background-color: #ffedd5; }
+        .option-icon { font-size: 3rem; display: block; }
+        .option-text { font-size: 1.5rem; font-family: 'Nanum Pen Script', cursive; }
+
+        /* 일기 내용 작성 부분 */
+        .text-line {
+            font-size: 2rem;
+            font-family: 'Nanum Pen Script', cursive;
+            background: rgba(255,255,255,0.8); /* 줄무늬 위에 글씨 잘 보이게 */
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .highlight-btn {
+            color: var(--accent-color);
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 2px dashed var(--accent-color);
+            padding: 0 5px;
+        }
+        
+        .highlight-btn:hover { background-color: #fff7ed; }
+
+        .save-btn {
+            margin-top: 30px;
+            padding: 10px 30px;
+            font-size: 1.5rem;
+            font-family: 'Nanum Pen Script', cursive;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        @media print {
+            .save-btn, .popup-overlay { display: none; }
+            body { background: white; }
+            .diary-container { box-shadow: none; border: 1px solid black; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎨 나의 그림 일기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2국어03-04] 경험을 짧은 글로 표현</span></h1>
+
+    <div class="diary-container" id="diaryPaper">
+        <div class="date-weather-row">
+            <div>
+                <span class="section-title">날짜:</span>
+                <span id="dateDisplay">2024년 00월 00일</span>
+            </div>
+            <div>
+                <span class="section-title">날씨:</span>
+                <span class="highlight-btn" id="weatherBtn" onclick="openPopup('weather')">선택하기</span>
+            </div>
+        </div>
+
+        <div class="drawing-area" id="drawingBox" onclick="openPopup('activity')">
+            <!-- 선택한 활동 그림이 여기에 들어감 -->
+            <div style="font-size:1.5rem; color:#999;">(여기를 눌러 그림을 골라요)</div>
+        </div>
+
+        <div class="text-line">
+            오늘은 <span class="highlight-btn" id="moodBtn" onclick="openPopup('mood')">기분</span> 하루였다.
+        </div>
+        <div class="text-line">
+            나는 <span class="highlight-btn" id="activityTextBtn" onclick="openPopup('activity')">무엇을</span> 했다.
+        </div>
+        <div class="text-line">
+            정말 <span class="highlight-btn" id="feelingBtn" onclick="openPopup('feeling')">어땠다</span>.
+        </div>
+    </div>
+
+    <button class="save-btn" onclick="printDiary()">일기 저장하기 (인쇄) 🖨️</button>
+
+    <!-- 팝업 -->
+    <div class="popup-overlay" id="popup">
+        <div class="popup-content" id="popupOptions">
+            <!-- 옵션들이 여기에 생성됨 -->
+        </div>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 일기 선택지 데이터 */
+        const data = {
+            weather: [
+                { icon: "☀️", text: "맑음" },
+                { icon: "☁️", text: "구름" },
+                { icon: "🌧️", text: "비" },
+                { icon: "☃️", text: "눈" }
+            ],
+            mood: [
+                { icon: "😊", text: "즐거운" },
+                { icon: "😢", text: "슬픈" },
+                { icon: "😡", text: "화나는" },
+                { icon: "😴", text: "피곤한" }
+            ],
+            activity: [
+                { icon: "⚽", text: "축구를" },
+                { icon: "📚", text: "공부를" },
+                { icon: "🍔", text: "햄버거를 먹는" }, /* 문맥에 맞게 조사 포함 */
+                { icon: "📺", text: "TV를 보는" }
+            ],
+            feeling: [
+                { icon: "👍", text: "최고였다" },
+                { icon: "👎", text: "별로였다" },
+                { icon: "🥱", text: "졸렸다" },
+                { icon: "🤩", text: "신났다" }
+            ]
+        };
+
+        let currentType = '';
+
+        // 오늘 날짜 설정
+        const today = new Date();
+        document.getElementById('dateDisplay').innerText = 
+            `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+
+        function openPopup(type) {
+            currentType = type;
+            const popup = document.getElementById('popup');
+            const content = document.getElementById('popupOptions');
+            content.innerHTML = '';
+
+            data[type].forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'option-card';
+                div.innerHTML = `
+                    <span class="option-icon">${item.icon}</span>
+                    <span class="option-text">${item.text}</span>
+                `;
+                div.onclick = () => selectOption(type, item);
+                content.appendChild(div);
+            });
+
+            popup.style.display = 'flex';
+        }
+
+        function selectOption(type, item) {
+            document.getElementById('popup').style.display = 'none';
+
+            if (type === 'weather') {
+                document.getElementById('weatherBtn').innerText = item.icon + " " + item.text;
+            } else if (type === 'mood') {
+                document.getElementById('moodBtn').innerText = item.text;
+            } else if (type === 'activity') {
+                // 그림 영역 업데이트
+                document.getElementById('drawingBox').innerHTML = item.icon;
+                // 텍스트 업데이트 (조사 처리 등은 단순화)
+                document.getElementById('activityTextBtn').innerText = item.text;
+            } else if (type === 'feeling') {
+                document.getElementById('feelingBtn').innerText = item.text;
+            }
+        }
+
+        // 팝업 닫기 (배경 클릭)
+        document.getElementById('popup').addEventListener('click', (e) => {
+            if (e.target.id === 'popup') {
+                document.getElementById('popup').style.display = 'none';
+            }
+        });
+
+        function printDiary() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

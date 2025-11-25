@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>반대말 짝꿍</title>
+    <style>
+        /* [선생님 수정 포인트 1] 색상 테마 */
+        :root {
+            --bg-color: #fff7ed;        /* 배경색 */
+            --card-color: #fdba74;      /* 카드 기본색 */
+            --selected-color: #f97316;  /* 선택된 카드색 */
+            --matched-color: #22c55e;   /* 정답 카드색 */
+            --line-color: #ea580c;      /* 연결 선 색상 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: #9a3412; margin-bottom: 10px; }
+
+        .game-container {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 30px;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 40%;
+            z-index: 2;
+        }
+
+        .word-card {
+            background: white;
+            border: 3px solid var(--card-color);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .word-card:hover {
+            transform: scale(1.05);
+            background-color: #fff7ed;
+        }
+
+        .word-card.selected {
+            background-color: var(--selected-color);
+            color: white;
+            border-color: var(--selected-color);
+        }
+
+        .word-card.matched {
+            background-color: var(--matched-color);
+            color: white;
+            border-color: var(--matched-color);
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        .word-card.wrong {
+            border-color: #ef4444;
+            background-color: #fee2e2;
+            animation: shake 0.4s;
+        }
+
+        .card-emoji { font-size: 2.5rem; margin-bottom: 5px; display: block; }
+        .card-text { font-size: 1.5rem; font-weight: bold; }
+
+        #svgCanvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        line {
+            stroke-width: 4;
+            stroke-linecap: round;
+            opacity: 0.7;
+        }
+
+        .btn-reset {
+            margin-top: 30px;
+            padding: 10px 25px;
+            background: var(--selected-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>↔️ 반대말 짝꿍 찾기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[4국어04-01] 반의어 이해하기</span></h1>
+    <p>서로 반대되는 뜻을 가진 낱말을 연결해주세요.</p>
+
+    <div class="game-container">
+        <svg id="svgCanvas"></svg>
+        
+        <div class="column" id="leftCol">
+            <!-- 왼쪽 단어들 -->
+        </div>
+        
+        <div class="column" id="rightCol">
+            <!-- 오른쪽 단어들 -->
+        </div>
+    </div>
+
+    <button class="btn-reset" onclick="initGame()">다시 하기 🔄</button>
+
+    <script>
+        /* [선생님 수정 포인트 2] 반대말 목록 데이터 */
+        const pairs = [
+            { id: 1, left: { t: "크다", e: "🐘" }, right: { t: "작다", e: "🐜" } },
+            { id: 2, left: { t: "길다", e: "🦒" }, right: { t: "짧다", e: "🐛" } },
+            { id: 3, left: { t: "덥다", e: "☀️" }, right: { t: "춥다", e: "⛄" } },
+            { id: 4, left: { t: "많다", e: "🍇" }, right: { t: "적다", e: "🍒" } }
+        ];
+
+        let selectedLeft = null;
+        let matchedCount = 0;
+
+        function initGame() {
+            const leftCol = document.getElementById('leftCol');
+            const rightCol = document.getElementById('rightCol');
+            const svg = document.getElementById('svgCanvas');
+            
+            leftCol.innerHTML = '';
+            rightCol.innerHTML = '';
+            svg.innerHTML = '';
+            matchedCount = 0;
+            selectedLeft = null;
+
+            // 순서 섞기
+            const leftItems = [...pairs].sort(() => Math.random() - 0.5);
+            const rightItems = [...pairs].sort(() => Math.random() - 0.5);
+
+            // 왼쪽 카드 생성
+            leftItems.forEach(item => {
+                const card = createCard(item.left, item.id, 'left');
+                leftCol.appendChild(card);
+            });
+
+            // 오른쪽 카드 생성
+            rightItems.forEach(item => {
+                const card = createCard(item.right, item.id, 'right');
+                rightCol.appendChild(card);
+            });
+        }
+
+        function createCard(data, id, side) {
+            const div = document.createElement('div');
+            div.className = 'word-card';
+            div.dataset.id = id;
+            div.dataset.side = side;
+            div.innerHTML = `
+                <span class="card-emoji">${data.e}</span>
+                <span class="card-text">${data.t}</span>
+            `;
+            div.onclick = () => handleCardClick(div);
+            return div;
+        }
+
+        function handleCardClick(card) {
+            if (card.classList.contains('matched')) return;
+
+            if (card.dataset.side === 'left') {
+                // 왼쪽 클릭
+                if (selectedLeft) selectedLeft.classList.remove('selected');
+                selectedLeft = card;
+                card.classList.add('selected');
+            } else {
+                // 오른쪽 클릭
+                if (!selectedLeft) return; // 왼쪽 먼저 선택해야 함
+
+                if (selectedLeft.dataset.id === card.dataset.id) {
+                    // 정답
+                    matchSuccess(selectedLeft, card);
+                    selectedLeft = null;
+                } else {
+                    // 오답
+                    card.classList.add('wrong');
+                    playWrong();
+                    setTimeout(() => card.classList.remove('wrong'), 500);
+                }
+            }
+        }
+
+        function matchSuccess(left, right) {
+            left.classList.remove('selected');
+            left.classList.add('matched');
+            right.classList.add('matched');
+            
+            drawLine(left, right);
+            playSuccess();
+            matchedCount++;
+
+            if (matchedCount === pairs.length) {
+                setTimeout(() => alert("와! 반대말 짝꿍을 모두 찾았어요! 🎉"), 500);
+            }
+        }
+
+        function drawLine(el1, el2) {
+            const svg = document.getElementById('svgCanvas');
+            const rect1 = el1.getBoundingClientRect();
+            const rect2 = el2.getBoundingClientRect();
+            const container = document.querySelector('.game-container').getBoundingClientRect();
+
+            const x1 = rect1.right - container.left; // 왼쪽 카드 오른쪽 끝
+            const y1 = rect1.top + rect1.height/2 - container.top;
+            const x2 = rect2.left - container.left; // 오른쪽 카드 왼쪽 끝
+            const y2 = rect2.top + rect2.height/2 - container.top;
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#22c55e"); // 정답 초록색
+
+            svg.appendChild(line);
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

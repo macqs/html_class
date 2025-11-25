@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 이름 글자 찾기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 색상 */
+        :root {
+            --bg-color: #fff7ed;        /* 배경색 */
+            --name-bg: #ffedd5;         /* 이름 표시 영역 배경 */
+            --bubble-color: #fb923c;    /* 글자 풍선 색상 */
+            --text-color: #7c2d12;      /* 글자색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* 풍선 떠다니는 효과 위해 스크롤 숨김 */
+        }
+
+        .header {
+            z-index: 10;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .target-name-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--text-color);
+            background: white;
+            padding: 10px 40px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 3px solid var(--bubble-color);
+            margin-top: 10px;
+            display: inline-flex;
+            gap: 10px;
+        }
+        
+        .name-char {
+            color: #ccc; /* 아직 못 찾은 글자는 흐리게 */
+        }
+        
+        .name-char.found {
+            color: var(--text-color); /* 찾으면 진하게 */
+            animation: jump 0.5s;
+        }
+
+        .game-area {
+            position: relative;
+            width: 100%;
+            flex-grow: 1;
+            background: rgba(255,255,255,0.5);
+            border-radius: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+            border: 2px dashed #fed7aa;
+        }
+
+        .bubble {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4b5563;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 3px solid var(--bubble-color);
+            user-select: none;
+        }
+        
+        .bubble:active {
+            transform: scale(0.9);
+        }
+
+        .bubble.popped {
+            transform: scale(1.5);
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+
+        @keyframes jump {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .setup-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+        }
+        
+        .input-box {
+            font-size: 2rem;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            font-size: 1.5rem;
+            padding: 10px 30px;
+            background: var(--bubble-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="setup-screen" id="setupScreen">
+        <h1>내 이름이 뭐예요?</h1>
+        <input type="text" id="nameInput" class="input-box" placeholder="이름 입력" value="김철수">
+        <button class="btn" onclick="startGame()">시작하기! 🚀</button>
+    </div>
+
+    <div class="header">
+        <h1>🎈 내 이름 글자 찾기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2국어01-02] 글자 모양 변별하기</span></h1>
+        <p>풍선을 터뜨려서 내 이름을 완성해보세요!</p>
+        <div class="target-name-display" id="nameDisplay">
+            <!-- 이름 글자가 여기에 표시됩니다 -->
+        </div>
+    </div>
+
+    <div class="game-area" id="gameArea">
+        <!-- 풍선들이 떠다닙니다 -->
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 방해 글자들 (오답 풍선에 들어갈 글자) */
+        const distractors = "가나다라마바사아자차카타파하거너더러머버서어저처커터퍼허고노도로모보소오조초코토포호구누두루무부수우주추쿠투푸후기니디리미비시이지치키티피히";
+        
+        let targetName = "";
+        let foundCount = 0;
+        let bubbles = [];
+        let animationId;
+
+        function startGame() {
+            const input = document.getElementById('nameInput').value.trim();
+            if (!input) {
+                alert("이름을 입력해주세요!");
+                return;
+            }
+            targetName = input;
+            foundCount = 0;
+            
+            document.getElementById('setupScreen').style.display = 'none';
+            setupNameDisplay();
+            createBubbles();
+            animate();
+        }
+
+        function setupNameDisplay() {
+            const display = document.getElementById('nameDisplay');
+            display.innerHTML = '';
+            
+            for (let char of targetName) {
+                const span = document.createElement('span');
+                span.className = 'name-char';
+                span.innerText = char;
+                span.dataset.char = char;
+                display.appendChild(span);
+            }
+        }
+
+        function createBubbles() {
+            const area = document.getElementById('gameArea');
+            area.innerHTML = '';
+            bubbles = [];
+
+            // 정답 글자 풍선 만들기
+            for (let char of targetName) {
+                createBubble(char, true);
+            }
+
+            // 오답 글자 풍선 만들기 (이름 길이 * 3배 정도)
+            const numDistractors = targetName.length * 3;
+            for (let i = 0; i < numDistractors; i++) {
+                const char = distractors[Math.floor(Math.random() * distractors.length)];
+                createBubble(char, false);
+            }
+        }
+
+        function createBubble(char, isTarget) {
+            const area = document.getElementById('gameArea');
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.innerText = char;
+            
+            // 랜덤 위치 및 속도
+            let x = Math.random() * (area.clientWidth - 80);
+            let y = Math.random() * (area.clientHeight - 80);
+            let dx = (Math.random() - 0.5) * 2;
+            let dy = (Math.random() - 0.5) * 2;
+
+            bubble.style.left = x + 'px';
+            bubble.style.top = y + 'px';
+
+            bubble.onmousedown = () => handlePop(bubble, char, isTarget);
+            
+            area.appendChild(bubble);
+            
+            bubbles.push({ element: bubble, x, y, dx, dy, popped: false });
+        }
+
+        function handlePop(element, char, isTarget) {
+            if (element.classList.contains('popped')) return;
+
+            if (isTarget) {
+                // 정답!
+                element.classList.add('popped');
+                playPopSound();
+                
+                // 이름 표시줄 업데이트
+                const chars = document.querySelectorAll('.name-char');
+                for (let span of chars) {
+                    if (span.dataset.char === char && !span.classList.contains('found')) {
+                        span.classList.add('found');
+                        foundCount++;
+                        break; // 하나만 처리 (같은 글자가 이름에 2개 있을 경우)
+                    }
+                }
+
+                if (foundCount === targetName.length) {
+                    setTimeout(() => {
+                        alert(`우와! ${targetName} 이름을 완성했어요! 🎉`);
+                        location.reload(); // 다시 시작
+                    }, 1000);
+                }
+            } else {
+                // 오답 (흔들림 효과)
+                element.style.backgroundColor = '#fee2e2';
+                setTimeout(() => element.style.backgroundColor = 'white', 200);
+            }
+        }
+
+        function animate() {
+            const area = document.getElementById('gameArea');
+            const w = area.clientWidth - 80;
+            const h = area.clientHeight - 80;
+
+            bubbles.forEach(b => {
+                if (b.popped) return;
+
+                b.x += b.dx;
+                b.y += b.dy;
+
+                // 벽 튕기기
+                if (b.x <= 0 || b.x >= w) b.dx *= -1;
+                if (b.y <= 0 || b.y >= h) b.dy *= -1;
+
+                b.element.style.left = b.x + 'px';
+                b.element.style.top = b.y + 'px';
+            });
+
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function playPopSound() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(400, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+    </script>
+</body>
+</html>

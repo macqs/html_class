@@ -8,7 +8,6 @@ import type { ExampleCode, Participant, SeatLayout, Session } from '@/types';
 import StatsBar from '@/components/dashboard/StatsBar';
 import SeatMap from '@/components/dashboard/SeatMap';
 import CodePreviewPanel from '@/components/dashboard/CodePreviewPanel';
-import ActivityLog from '@/components/dashboard/ActivityLog';
 import ParticipantModal from '@/components/dashboard/ParticipantModal';
 import { useInstructorRealtime } from '@/hooks/useInstructorRealtime';
 
@@ -35,6 +34,10 @@ export default function InstructorDashboardPage() {
   const [exampleSubjectFilter, setExampleSubjectFilter] = useState<'all' | '국어' | '사회' | '수학' | '과학'>('all');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [sharingParticipantId, setSharingParticipantId] = useState<string | null>(null);
+  const [selectedExampleIds, setSelectedExampleIds] = useState<Set<string>>(new Set());
+  const [customCode, setCustomCode] = useState('');
+  const [customCodeTitle, setCustomCodeTitle] = useState('');
+  const [isSendingMultiple, setIsSendingMultiple] = useState(false);
 
   useEffect(() => {
     loadSession();
@@ -52,7 +55,6 @@ export default function InstructorDashboardPage() {
   const {
     participants,
     helpRequests,
-    activityLogs,
     sendAnnouncement,
     distributeExample,
     shareExcellentWork,
@@ -81,11 +83,53 @@ export default function InstructorDashboardPage() {
     setIsExamplePickerOpen(false);
     setExampleSearchText('');
     setExampleSubjectFilter('all');
+    setSelectedExampleIds(new Set());
+    setCustomCode('');
+    setCustomCodeTitle('');
   }
 
   async function handleSelectExample(example: ExampleCode) {
     await distributeExample(example.title, example.code);
     alert('예제가 배포되었습니다!');
+    closeExamplePicker();
+  }
+
+  function toggleExampleSelection(exampleId: string) {
+    setSelectedExampleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(exampleId)) {
+        next.delete(exampleId);
+      } else {
+        next.add(exampleId);
+      }
+      return next;
+    });
+  }
+
+  async function handleSendSelectedExamples() {
+    if (selectedExampleIds.size === 0) {
+      alert('배포할 예제를 선택해주세요.');
+      return;
+    }
+    setIsSendingMultiple(true);
+    const selectedExamples = examples.filter((e) => selectedExampleIds.has(e.id));
+    for (const example of selectedExamples) {
+      await distributeExample(example.title, example.code);
+    }
+    setIsSendingMultiple(false);
+    alert(`${selectedExamples.length}개 예제가 배포되었습니다!`);
+    closeExamplePicker();
+  }
+
+  async function handleSendCustomCode() {
+    const code = customCode.trim();
+    if (!code) {
+      alert('배포할 코드를 입력해주세요.');
+      return;
+    }
+    const title = customCodeTitle.trim() || '즉흥 코드';
+    await distributeExample(title, code);
+    alert('코드가 배포되었습니다!');
     closeExamplePicker();
   }
 
@@ -223,26 +267,21 @@ export default function InstructorDashboardPage() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="grid flex-1 grid-cols-3 gap-4">
-          <div className="col-span-2">
-            <SeatMap
-              layout={seatLayout}
-              participants={participants}
-              onSeatClick={setPreviewParticipant}
-              onSeatDoubleClick={handleSeatDoubleClick}
-              onSeatRemove={(participant) => {
-                if (confirm(`${participant.nickname}님을 내보내고 좌석을 비울까요?`)) {
-                  removeParticipant(participant.id);
-                }
-              }}
-            />
-          </div>
-          <div className="flex flex-col">
-            <ActivityLog logs={activityLogs} />
-          </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
+        <div>
+          <SeatMap
+            layout={seatLayout}
+            participants={participants}
+            onSeatClick={setPreviewParticipant}
+            onSeatDoubleClick={handleSeatDoubleClick}
+            onSeatRemove={(participant) => {
+              if (confirm(`${participant.nickname}님을 내보내고 좌석을 비울까요?`)) {
+                removeParticipant(participant.id);
+              }
+            }}
+          />
         </div>
-        <div className="mx-auto w-full max-w-7xl">
+        <div className="w-full">
           <div className="aspect-[16/10]">
             <CodePreviewPanel participant={previewParticipant} />
           </div>
@@ -311,7 +350,7 @@ export default function InstructorDashboardPage() {
       {isExamplePickerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeExamplePicker}>
           <div
-            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -347,37 +386,95 @@ export default function InstructorDashboardPage() {
               </div>
             )}
 
-            {isLoadingExamples ? (
-              <p className="py-8 text-center text-sm text-zinc-500">예제를 불러오는 중입니다...</p>
-            ) : examples.length === 0 ? (
-              <p className="py-8 text-center text-sm text-zinc-500">등록된 예제가 없습니다.</p>
-            ) : (
-              <>
-                <p className="mb-2 text-xs text-zinc-500">
-                  필터 결과 <span className="font-semibold text-zinc-700">{filteredExamples.length}</span>건 / 전체 {examples.length}건
-                </p>
-                <div className="max-h-96 space-y-3 overflow-y-auto">
-                  {filteredExamples.map((example) => (
-                  <button
-                    type="button"
-                    key={example.id}
-                    onClick={() => handleSelectExample(example)}
-                    className="w-full rounded-2xl border border-zinc-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-base font-semibold text-zinc-900">{example.title}</h4>
-                      <span className="rounded-full bg-zinc-100 px-3 py-0.5 text-xs font-medium text-zinc-600">
-                        {example.difficulty}
-                      </span>
-                    </div>
-                    {example.description && (
-                      <p className="mt-2 text-sm text-zinc-500">{example.description}</p>
+            <div className="custom-scrollbar max-h-[60vh] overflow-y-auto">
+              {isLoadingExamples ? (
+                <p className="py-8 text-center text-sm text-zinc-500">예제를 불러오는 중입니다...</p>
+              ) : examples.length === 0 ? (
+                <p className="py-8 text-center text-sm text-zinc-500">등록된 예제가 없습니다.</p>
+              ) : (
+                <>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs text-zinc-500">
+                      필터 결과 <span className="font-semibold text-zinc-700">{filteredExamples.length}</span>건 / 전체 {examples.length}건
+                      {selectedExampleIds.size > 0 && (
+                        <span className="ml-2 font-semibold text-emerald-600">({selectedExampleIds.size}개 선택됨)</span>
+                      )}
+                    </p>
+                    {selectedExampleIds.size > 0 && (
+                      <button
+                        type="button"
+                        disabled={isSendingMultiple}
+                        onClick={handleSendSelectedExamples}
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        {isSendingMultiple ? '배포 중...' : `선택 ${selectedExampleIds.size}개 일괄 배포`}
+                      </button>
                     )}
-                  </button>
-                  ))}
-                </div>
-              </>
-            )}
+                  </div>
+                  <div className="space-y-2">
+                    {filteredExamples.map((example) => {
+                      const isSelected = selectedExampleIds.has(example.id);
+                      return (
+                        <div
+                          key={example.id}
+                          className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
+                            isSelected ? 'border-emerald-400 bg-emerald-50' : 'border-zinc-200 hover:border-emerald-300 hover:bg-emerald-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleExampleSelection(example.id)}
+                            className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSelectExample(example)}
+                            className="flex-1 text-left"
+                          >
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold text-zinc-900">{example.title}</h4>
+                              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                                {example.difficulty}
+                              </span>
+                            </div>
+                            {example.description && (
+                              <p className="mt-1 text-xs text-zinc-500">{example.description}</p>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              <div className="mt-4 border-t border-zinc-100 pt-4">
+                <p className="mb-2 text-sm font-semibold text-zinc-700">즉흥 코드 직접 배포</p>
+                <input
+                  type="text"
+                  value={customCodeTitle}
+                  onChange={(e) => setCustomCodeTitle(e.target.value)}
+                  placeholder="제목 (선택, 기본: 즉흥 코드)"
+                  className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                />
+                <textarea
+                  value={customCode}
+                  onChange={(e) => setCustomCode(e.target.value)}
+                  placeholder="HTML 코드를 여기에 붙여넣으세요..."
+                  rows={4}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 font-mono text-xs placeholder:text-zinc-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendCustomCode}
+                  disabled={!customCode.trim()}
+                  className="mt-2 w-full rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  즉흥 코드 배포
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

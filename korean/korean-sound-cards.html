@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소리 나는 낱말 카드</title>
+    <style>
+        /* 
+         * [선생님을 위한 디자인 수정 팁]
+         * 배경색이나 글자색을 여기서 바꿀 수 있어요.
+         */
+        :root {
+            --bg-color: #f0f9ff;        /* 배경색 (연한 하늘색) */
+            --card-bg: #ffffff;         /* 카드 배경색 (흰색) */
+            --primary-color: #3b82f6;   /* 강조색 (파란색) */
+            --text-color: #1f2937;      /* 글자색 (진한 회색) */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin: 0 0 10px 0;
+            font-size: 2em;
+        }
+
+        .standard-info {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #1e40af;
+            text-align: left;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            width: 100%;
+            padding: 10px;
+        }
+
+        /* 카드 디자인 */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            border: 3px solid transparent;
+            aspect-ratio: 1 / 1.2;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .card:active {
+            transform: scale(0.95);
+        }
+
+        .card-image {
+            font-size: 5rem;
+            margin-bottom: 15px;
+        }
+
+        .card-text {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .playing {
+            border-color: #10b981; /* 재생 중일 때 초록색 테두리 */
+            background-color: #ecfdf5;
+        }
+
+        /* 버튼 디자인 */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+        }
+
+        .btn.secondary {
+            background-color: #6b7280;
+        }
+
+        .btn.secondary:hover {
+            background-color: #4b5563;
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 600px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .card-image {
+                font-size: 3.5rem;
+            }
+            .card-text {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📢 소리 나는 낱말 카드</h1>
+        <p>카드를 눌러서 그림의 이름을 들어보세요.</p>
+        
+        <div class="standard-info">
+            <strong>[교육과정 연계]</strong><br>
+            • 특수교육: <strong>[2국어02-04]</strong> 실물, 그림, 상징이 소리로 표현되는 것을 알고, 읽는 활동에 관심을 가진다.<br>
+            • 일반교육: <strong>[2국06-01]</strong> 일상의 다양한 매체와 매체 자료에 흥미와 관심을 가진다.
+        </div>
+    </div>
+
+    <div class="grid-container" id="cardContainer">
+        <!-- 
+          [선생님 수정 포인트 1] 
+          아래 카드 내용을 선생님 반 아이들이 좋아하는 것으로 바꿔보세요.
+          emoji: 보여줄 그림 (이모지 또는 이미지 URL)
+          text: 카드에 적힐 글자
+          sound: 읽어줄 소리 내용
+        -->
+    </div>
+
+    <div class="controls">
+        <button class="btn secondary" onclick="stopSound()">소리 끄기 🔇</button>
+    </div>
+
+    <script>
+        // [선생님 수정 포인트 2] 카드 목록을 여기서 자유롭게 수정하세요!
+        const cardData = [
+            { emoji: "🍎", text: "사과", sound: "맛있는 사과" },
+            { emoji: "🚌", text: "버스", sound: "뛰뛰빵빵 버스" },
+            { emoji: "🐶", text: "강아지", sound: "멍멍! 강아지" },
+            { emoji: "🏫", text: "학교", sound: "즐거운 학교" },
+            { emoji: "😀", text: "친구", sound: "사이좋은 친구" },
+            { emoji: "✈️", text: "비행기", sound: "슈웅 비행기" }
+        ];
+
+        const container = document.getElementById('cardContainer');
+        let synth = window.speechSynthesis;
+
+        // 카드 만들기 함수
+        function createCards() {
+            container.innerHTML = '';
+            cardData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => playSound(item.sound, card);
+                
+                // 카드 내용 채우기
+                card.innerHTML = `
+                    <div class="card-image">${item.emoji}</div>
+                    <div class="card-text">${item.text}</div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // 소리 재생 함수 (Web Speech API 사용)
+        function playSound(text, cardElement) {
+            // 이전 소리 멈춤
+            synth.cancel();
+
+            // 모든 카드의 재생 표시 제거
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('playing'));
+
+            // TTS 설정
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR'; // 한국어 설정
+            utterance.rate = 0.9;     // 읽기 속도 (0.1 ~ 10, 1이 기본)
+            utterance.pitch = 1.1;    // 목소리 톤 (0 ~ 2, 1이 기본)
+
+            // 재생 시작 시 스타일 변경
+            utterance.onstart = () => {
+                cardElement.classList.add('playing');
+            };
+
+            // 재생 종료 시 스타일 복구
+            utterance.onend = () => {
+                cardElement.classList.remove('playing');
+            };
+
+            synth.speak(utterance);
+        }
+
+        // 소리 멈춤 함수
+        function stopSound() {
+            synth.cancel();
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('playing'));
+        }
+
+        // 초기 실행
+        createCards();
+
+        // 브라우저 호환성 체크
+        if (!window.speechSynthesis) {
+            alert("이 브라우저는 소리 재생 기능을 지원하지 않습니다. 크롬(Chrome)이나 엣지(Edge) 브라우저를 사용해주세요.");
+        }
+    </script>
+</body>
+</html>

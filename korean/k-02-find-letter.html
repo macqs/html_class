@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>숨은 글자 찾기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 디자인 설정 */
+        :root {
+            --bg-color: #f0fdf4;        /* 전체 배경색 */
+            --target-color: #15803d;    /* 정답 글자 색상 */
+            --distractor-color: #86efac; /* 오답 글자 색상 */
+            --btn-bg: #16a34a;          /* 버튼 배경색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            margin: 0;
+            color: #14532d;
+            font-size: 2rem;
+        }
+
+        .instruction {
+            font-size: 1.5rem;
+            margin-top: 10px;
+            color: #166534;
+        }
+
+        .target-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--target-color);
+            background: #dcfce7;
+            padding: 10px 30px;
+            border-radius: 15px;
+            display: inline-block;
+            margin-top: 10px;
+            border: 3px dashed var(--target-color);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            width: 100%;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        }
+
+        .letter-box {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background-color: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .letter-box:hover {
+            transform: scale(1.05);
+            background-color: #dcfce7;
+        }
+
+        .letter-box.found {
+            background-color: var(--target-color);
+            color: white;
+            animation: bounce 0.5s;
+            pointer-events: none;
+        }
+
+        .letter-box.wrong {
+            background-color: #fee2e2;
+            color: #ef4444;
+            animation: shake 0.4s;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            background-color: var(--btn-bg);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background-color: #15803d;
+        }
+
+        .score-board {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #166534;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @media (max-width: 500px) {
+            .game-board {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }
+            .letter-box {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🔎 숨은 글자 찾기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2국어01-02] 글자 모양 변별하기</span></h1>
+        <div class="instruction">
+            아래 글자를 모두 찾아보세요!
+            <br>
+            <span id="targetLetter" class="target-display">가</span>
+        </div>
+        <div class="score-board">
+            찾은 개수: <span id="foundCount">0</span> / <span id="totalTarget">0</span>
+        </div>
+    </div>
+
+    <div class="game-board" id="board">
+        <!-- 글자들이 여기에 생성됩니다 -->
+    </div>
+
+    <div class="controls">
+        <button onclick="resetGame()">새로 하기 🔄</button>
+    </div>
+
+    <script>
+        /* 
+         * [선생님 수정 포인트 2] 게임 설정
+         * target: 찾을 정답 글자
+         * distractors: 헷갈리게 할 오답 글자들
+         * targetCount: 정답 글자를 몇 개 숨길지
+         * totalSize: 전체 칸 개수 (예: 20개)
+         */
+        const gameConfig = {
+            target: "가",
+            distractors: ["나", "다", "거", "갸", "고", "기", "구", "마"],
+            targetCount: 5,
+            totalSize: 20
+        };
+
+        let found = 0;
+
+        function initGame() {
+            const board = document.getElementById('board');
+            const targetDisplay = document.getElementById('targetLetter');
+            const foundDisplay = document.getElementById('foundCount');
+            const totalDisplay = document.getElementById('totalTarget');
+
+            board.innerHTML = '';
+            found = 0;
+            foundDisplay.innerText = found;
+            targetDisplay.innerText = gameConfig.target;
+            totalDisplay.innerText = gameConfig.targetCount;
+
+            // 글자 목록 만들기 (정답 + 오답)
+            let letters = [];
+            
+            // 정답 채우기
+            for(let i=0; i<gameConfig.targetCount; i++) {
+                letters.push({ char: gameConfig.target, isTarget: true });
+            }
+
+            // 나머지 오답 채우기
+            for(let i=0; i<(gameConfig.totalSize - gameConfig.targetCount); i++) {
+                const randomDistractor = gameConfig.distractors[Math.floor(Math.random() * gameConfig.distractors.length)];
+                letters.push({ char: randomDistractor, isTarget: false });
+            }
+
+            // 섞기
+            letters.sort(() => Math.random() - 0.5);
+
+            // 화면에 배치
+            letters.forEach(item => {
+                const box = document.createElement('div');
+                box.className = 'letter-box';
+                box.innerText = item.char;
+                
+                box.onclick = () => handleClick(box, item.isTarget);
+                
+                board.appendChild(box);
+            });
+        }
+
+        function handleClick(element, isTarget) {
+            if(element.classList.contains('found') || element.classList.contains('wrong')) return;
+
+            if(isTarget) {
+                // 정답
+                element.classList.add('found');
+                found++;
+                document.getElementById('foundCount').innerText = found;
+                playSuccess();
+
+                if(found === gameConfig.targetCount) {
+                    setTimeout(() => alert("와! 글자를 모두 찾았어요! 🎉"), 500);
+                }
+            } else {
+                // 오답
+                element.classList.add('wrong');
+                setTimeout(() => element.classList.remove('wrong'), 500);
+                playWrong();
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime); // 라
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+
+        // 게임 시작
+        initGame();
+    </script>
+</body>
+</html>

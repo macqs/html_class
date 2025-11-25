@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>크기 순서 배열</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #fef3c7;        /* 배경색 */
+            --slot-bg: #fffbeb;         /* 빈칸 배경 */
+            --slot-border: #f59e0b;     /* 빈칸 테두리 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: #92400e; margin-bottom: 10px; }
+
+        .instruction {
+            font-size: 1.5rem;
+            color: #b45309;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .train-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+            margin-bottom: 50px;
+            padding: 20px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 20px;
+        }
+
+        .slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .slot-box {
+            width: 120px;
+            height: 120px;
+            border: 4px dashed var(--slot-border);
+            border-radius: 15px;
+            background-color: var(--slot-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .slot-box.highlight {
+            background-color: #fcd34d;
+            border-style: solid;
+        }
+
+        .slot-label {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #92400e;
+        }
+
+        .items-area {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .item {
+            cursor: grab;
+            font-size: 4rem; /* 기본 폰트 크기 */
+            transition: transform 0.2s;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+        
+        .item.placed {
+            cursor: default;
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>📏 크기 순서대로 놓아요 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학01-05] 크기 비교 및 배열</span></h1>
+    <p class="instruction">작은 것부터 큰 것 순서대로 놓아보세요! (작음 ➡️ 큼)</p>
+
+    <div class="train-container">
+        <div class="slot">
+            <div class="slot-box" data-order="0"></div>
+            <div class="slot-label">제일 작음</div>
+        </div>
+        <div class="slot">
+            <div class="slot-box" data-order="1"></div>
+            <div class="slot-label">중간</div>
+        </div>
+        <div class="slot">
+            <div class="slot-box" data-order="2"></div>
+            <div class="slot-label">제일 큼</div>
+        </div>
+    </div>
+
+    <div class="items-area" id="itemPool">
+        <!-- 아이템들이 여기에 생성됩니다 -->
+    </div>
+
+    <button onclick="initGame()" style="margin-top:30px; padding:10px 20px; font-size:1.2rem; background:#f59e0b; color:white; border:none; border-radius:10px; cursor:pointer;">다시 하기 🔄</button>
+
+    <script>
+        /* [선생님 수정 포인트 2] 정렬할 아이템 이모지 */
+        const emojis = ["🍎", "⚽", "🐻", "🚗", "⭐"];
+
+        // 크기 배율 (작음, 중간, 큼)
+        const scales = [0.5, 1.0, 1.5]; 
+        let currentEmoji = "";
+        let placedCount = 0;
+
+        function initGame() {
+            const pool = document.getElementById('itemPool');
+            pool.innerHTML = '';
+            document.querySelectorAll('.slot-box').forEach(box => {
+                box.innerHTML = '';
+                box.classList.remove('highlight');
+            });
+            placedCount = 0;
+
+            // 랜덤 아이템 선택
+            currentEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+            // 3가지 크기의 아이템 생성
+            let items = [];
+            for(let i=0; i<3; i++) {
+                items.push({ id: i, scale: scales[i], char: currentEmoji });
+            }
+            
+            // 순서 섞기
+            items.sort(() => Math.random() - 0.5);
+
+            items.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'item';
+                el.innerText = item.char;
+                // 크기 조절 (transform scale 사용)
+                el.style.transform = `scale(${item.scale})`;
+                // dataset에 원래 순서(크기 순위) 저장
+                el.dataset.rank = item.id; // 0: 작음, 1: 중간, 2: 큼
+                
+                setupDrag(el);
+                pool.appendChild(el);
+            });
+        }
+
+        function setupDrag(el) {
+            let startX, startY;
+            
+            el.onmousedown = start;
+            el.ontouchstart = start;
+
+            function start(e) {
+                e.preventDefault();
+                const evt = e.touches ? e.touches[0] : e;
+                startX = evt.clientX;
+                startY = evt.clientY;
+
+                // 드래그 시작 시 스타일 변경
+                const rect = el.getBoundingClientRect();
+                el.style.position = 'fixed';
+                el.style.left = rect.left + 'px';
+                el.style.top = rect.top + 'px';
+                el.style.zIndex = 1000;
+                // 원래 크기 유지하며 드래그
+                el.style.width = rect.width + 'px';
+                el.style.height = rect.height + 'px';
+                el.style.margin = 0;
+
+                document.onmousemove = move;
+                document.onmouseup = end;
+                document.ontouchmove = move;
+                document.ontouchend = end;
+            }
+
+            function move(e) {
+                const evt = e.touches ? e.touches[0] : e;
+                // 중심점 기준으로 이동
+                el.style.left = (evt.clientX - el.offsetWidth/2) + 'px';
+                el.style.top = (evt.clientY - el.offsetHeight/2) + 'px';
+            }
+
+            function end(e) {
+                document.onmousemove = null;
+                document.onmouseup = null;
+                document.ontouchmove = null;
+                document.ontouchend = null;
+
+                const rect = el.getBoundingClientRect();
+                const cx = rect.left + rect.width/2;
+                const cy = rect.top + rect.height/2;
+
+                let dropped = false;
+                document.querySelectorAll('.slot-box').forEach(slot => {
+                    const sRect = slot.getBoundingClientRect();
+                    if(cx > sRect.left && cx < sRect.right && cy > sRect.top && cy < sRect.bottom) {
+                        
+                        // 이미 차있는지 확인
+                        if(slot.hasChildNodes()) return;
+
+                        // 정답 확인 (슬롯 순서 == 아이템 크기 순위)
+                        if(slot.dataset.order === el.dataset.rank) {
+                            // 정답
+                            dropped = true;
+                            slot.appendChild(el);
+                            el.style.position = 'static';
+                            el.style.zIndex = 'auto';
+                            el.style.transform = `scale(${scales[el.dataset.rank]})`; // 크기 복구
+                            el.classList.add('placed');
+                            
+                            playSuccess();
+                            slot.classList.add('highlight');
+                            placedCount++;
+                            
+                            if(placedCount === 3) {
+                                setTimeout(() => alert("정말 잘했어요! 크기 순서대로 잘 놓았네요! 👏"), 500);
+                            }
+                        } else {
+                            // 오답
+                            playWrong();
+                        }
+                    }
+                });
+
+                if(!dropped) {
+                    // 원위치
+                    el.style.position = 'static';
+                    el.style.zIndex = 'auto';
+                    // 크기 복구 (드래그 중 scale 잃었을 수 있으므로)
+                    el.style.transform = `scale(${scales[el.dataset.rank]})`;
+                    document.getElementById('itemPool').appendChild(el);
+                }
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

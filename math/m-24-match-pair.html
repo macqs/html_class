@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>짝꿍 찾기 (도형)</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #faf5ff;
+            --line-color: #9333ea;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: #6b21a8; margin-bottom: 20px; }
+
+        .game-area {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            width: 40%;
+            z-index: 2;
+        }
+
+        .item {
+            height: 100px;
+            background-color: white;
+            border: 3px solid #e9d5ff;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .item:hover {
+            border-color: #d8b4fe;
+            transform: scale(1.05);
+        }
+
+        .item.selected {
+            border-color: var(--line-color);
+            background-color: #f3e8ff;
+            box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.2);
+        }
+
+        .item.matched {
+            border-color: #22c55e;
+            background-color: #f0fdf4;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .item.wrong {
+            border-color: #ef4444;
+            animation: shake 0.4s;
+        }
+
+        .emoji-icon { font-size: 3rem; }
+
+        #svg-lines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        line {
+            stroke-width: 4;
+            stroke-linecap: round;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧩 짝꿍 찾기 (도형과 사물) <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학01-04] 관계있는 것 짝짓기</span></h1>
+    <p>도형과 모양이 비슷한 사물을 연결해주세요.</p>
+
+    <div class="game-area">
+        <svg id="svg-lines"></svg>
+
+        <div class="column" id="left-col">
+            <!-- 왼쪽 아이템 -->
+        </div>
+
+        <div class="column" id="right-col">
+            <!-- 오른쪽 아이템 -->
+        </div>
+    </div>
+
+    <button onclick="location.reload()" style="margin-top:30px; padding:10px 20px; background:#9333ea; color:white; border:none; border-radius:10px; cursor:pointer;">다시 하기 🔄</button>
+
+    <script>
+        /* [선생님 수정 포인트 2] 짝꿍 데이터 (도형 - 사물 매칭) */
+        const pairs = [
+            { id: 1, left: { icon: "🔴", text: "동그라미" }, right: { icon: "⚽", text: "축구공" } },
+            { id: 2, left: { icon: "🟥", text: "네모" }, right: { icon: "📺", text: "텔레비전" } },
+            { id: 3, left: { icon: "🔺", text: "세모" }, right: { icon: "🍕", text: "피자 조각" } },
+            { id: 4, left: { icon: "⭐", text: "별" }, right: { icon: "🌟", text: "반짝이" } }
+        ];
+
+        let selectedLeft = null;
+        let matchedCount = 0;
+
+        function initGame() {
+            const leftCol = document.getElementById('left-col');
+            const rightCol = document.getElementById('right-col');
+            
+            // 오른쪽만 섞기
+            const rightItems = [...pairs].sort(() => Math.random() - 0.5);
+
+            pairs.forEach(p => {
+                leftCol.appendChild(createItem(p.left, p.id, 'left'));
+            });
+
+            rightItems.forEach(p => {
+                rightCol.appendChild(createItem(p.right, p.id, 'right'));
+            });
+        }
+
+        function createItem(content, id, side) {
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.dataset.id = id;
+            div.dataset.side = side;
+            div.innerHTML = `
+                <div class="emoji-icon">${content.icon}</div>
+                <div style="font-size:0.9rem; margin-top:5px; color:#555;">${content.text}</div>
+            `;
+            div.onclick = handleClick;
+            return div;
+        }
+
+        function handleClick(e) {
+            const clicked = e.currentTarget;
+            if (clicked.classList.contains('matched')) return;
+
+            if (clicked.dataset.side === 'left') {
+                // 왼쪽 클릭
+                if (selectedLeft) selectedLeft.classList.remove('selected');
+                selectedLeft = clicked;
+                clicked.classList.add('selected');
+            } else {
+                // 오른쪽 클릭
+                if (!selectedLeft) return;
+
+                if (selectedLeft.dataset.id === clicked.dataset.id) {
+                    // 정답
+                    successMatch(selectedLeft, clicked);
+                    selectedLeft = null;
+                } else {
+                    // 오답
+                    clicked.classList.add('wrong');
+                    setTimeout(() => clicked.classList.remove('wrong'), 400);
+                    playWrong();
+                }
+            }
+        }
+
+        function successMatch(left, right) {
+            left.classList.remove('selected');
+            left.classList.add('matched');
+            right.classList.add('matched');
+
+            drawLine(left, right);
+            playSuccess();
+            
+            matchedCount++;
+            if (matchedCount === pairs.length) {
+                setTimeout(() => alert("모두 찾았습니다! 짝짝짝! 👏"), 500);
+            }
+        }
+
+        function drawLine(el1, el2) {
+            const svg = document.getElementById('svg-lines');
+            const r1 = el1.getBoundingClientRect();
+            const r2 = el2.getBoundingClientRect();
+            const c = document.querySelector('.game-area').getBoundingClientRect();
+
+            const x1 = r1.right - c.left;
+            const y1 = r1.top + r1.height/2 - c.top;
+            const x2 = r2.left - c.left;
+            const y2 = r2.top + r2.height/2 - c.top;
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#22c55e");
+
+            svg.appendChild(line);
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+        
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

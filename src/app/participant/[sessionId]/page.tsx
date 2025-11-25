@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useParams, useRouter } from 'next/navigation';
-import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, QrCode } from 'lucide-react';
+import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, QrCode, MessageSquareText, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
 import type { Participant } from '@/types';
 import CodeEditor from '@/components/editor/CodeEditor';
 import PreviewFrame from '@/components/editor/PreviewFrame';
 import ExampleSelector, { LocalExampleItem } from '@/components/editor/ExampleSelector';
+import ExtensionToolButton from '@/components/shared/ExtensionToolButton';
 import { useParticipantRealtime } from '@/hooks/useParticipantRealtime';
 
 const DEFAULT_HTML = `<!DOCTYPE html>
@@ -78,6 +79,116 @@ function QRModal({ url, onClose }: QRModalProps) {
         >
           닫기
         </button>
+      </div>
+    </div>
+  );
+}
+
+const RECOMMENDED_PROMPT = `아래 조건에 맞는 HTML 학습 콘텐츠를 만들어주세요.
+
+## 필수 조건
+- **단일 HTML 파일**: HTML, CSS, JavaScript를 하나의 파일에 모두 포함
+- **화면 비율**: 16:9 (가로모드 기준)
+- **반응형 대응**: 다양한 화면 크기에서 깨지지 않도록 설계
+
+## 디바이스 정보 (아래에서 선택하여 작성)
+- 사용 환경: [PC / 태블릿 / 스마트폰]
+- 태블릿 기종 (해당 시): [iPad / 갤럭시탭 / 기타]
+- 화면 방향: [가로모드 / 세로모드]
+
+## 콘텐츠 요청
+- 주제: [원하는 학습 주제를 입력하세요]
+- 대상 학년: [유아 / 초등 저학년 / 초등 고학년 / 중등]
+- 상호작용 유형: [드래그앤드롭 / 클릭 / 터치 / 입력]
+
+## 기술 요구사항
+- 외부 라이브러리 사용 금지 (순수 HTML/CSS/JS만 사용)
+- 이미지는 이모지 또는 CSS로 대체
+- 터치 디바이스 호환 (hover 대신 click/touch 이벤트)
+- 큰 버튼/터치 영역 (최소 44px 이상)
+- 명확한 시각적 피드백 제공
+
+## 접근성
+- 고대비 색상 사용
+- 큰 글씨 (최소 16px 이상)
+- 명확한 지시문 포함`;
+
+interface PromptGuideModalProps {
+  onClose: () => void;
+}
+
+function PromptGuideModal({ onClose }: PromptGuideModalProps) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(RECOMMENDED_PROMPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      alert('복사에 실패했습니다.');
+    }
+  }
+
+  return (
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b bg-amber-50 px-6 py-4">
+          <div className="flex items-center gap-2 text-amber-800">
+            <MessageSquareText size={20} />
+            <h3 className="text-lg font-bold">추천 프롬프트 가이드</h3>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-1 text-zinc-400 hover:bg-white">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto p-6">
+          <p className="mb-4 text-sm text-zinc-600">
+            아래 프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣고,
+            <span className="font-semibold text-amber-700"> [대괄호] 부분</span>을 본인 상황에 맞게 수정하세요.
+          </p>
+
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <pre className="whitespace-pre-wrap text-sm text-zinc-800">{RECOMMENDED_PROMPT}</pre>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">💡 사용 팁</p>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-amber-800">
+              <li>디바이스 정보를 정확히 입력하면 반응형이 더 잘 맞음</li>
+              <li>주제는 구체적으로 작성할수록 좋은 결과물이 나옴</li>
+              <li>생성된 코드를 메모장에 붙여넣고 .html로 저장</li>
+              <li>문제가 있으면 "코드 검증" 버튼으로 수정 요청 가능</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="flex gap-2 border-t bg-zinc-50 px-6 py-4">
+          <button
+            type="button"
+            onClick={copyPrompt}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-amber-600 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"
+          >
+            <Copy size={16} />
+            {copied ? '복사 완료!' : '프롬프트 복사하기'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            닫기
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -179,6 +290,7 @@ export default function ParticipantPage() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [isSharing, setIsSharing] = useState(false);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
   const getLocalExamplesKey = (participantId: string) => `localExamples:${participantId}`;
 
@@ -461,14 +573,45 @@ export default function ParticipantPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
-      <header className="flex items-center justify-between border-b bg-white px-6 py-4">
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b bg-white px-6 py-4">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-zinc-900">{participant.nickname}</h1>
           <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
             {participant.seat_position}
           </span>
         </div>
-        <div className="text-sm text-zinc-600">
+
+        <div className="flex items-center justify-center gap-2">
+          <a
+            href="https://chatgpt.com"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 hover:border-emerald-300 hover:bg-emerald-100"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">GPT</span>
+            <span>ChatGPT</span>
+          </a>
+          <a
+            href="https://claude.ai"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-800 hover:border-purple-300 hover:bg-purple-100"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">CL</span>
+            <span>Claude</span>
+          </a>
+          <a
+            href="https://gemini.google.com/"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800 hover:border-sky-300 hover:bg-sky-100"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-[10px] font-bold text-white">GE</span>
+            <span>Gemini</span>
+          </a>
+        </div>
+
+        <div className="text-right text-sm text-zinc-600">
           {lastSaved ? `마지막 저장: ${Math.floor((Date.now() - lastSaved.getTime()) / 60000)}분 전` : '자동 저장 대기 중'}
           {isSaving && <span className="ml-2 text-blue-600">저장 중...</span>}
         </div>
@@ -484,13 +627,24 @@ export default function ParticipantPage() {
       </main>
 
       <div className="flex items-center justify-between border-t bg-white px-6 py-4">
-        <ExampleSelector
-          onSelect={setCode}
-          liveExamples={liveExamples}
-          localExamples={localExamples}
-          onRemoveLocalExample={handleRemoveLocalExample}
-        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsPromptModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm hover:bg-amber-100"
+          >
+            <MessageSquareText size={16} />
+            추천 프롬프트
+          </button>
+          <ExampleSelector
+            onSelect={setCode}
+            liveExamples={liveExamples}
+            localExamples={localExamples}
+            onRemoveLocalExample={handleRemoveLocalExample}
+          />
+        </div>
         <div className="flex gap-2">
+          <ExtensionToolButton simple />
           <button
             type="button"
             onClick={validateCode}
@@ -551,6 +705,10 @@ export default function ParticipantPage() {
 
       {isQRModalOpen && shareUrl && (
         <QRModal url={shareUrl} onClose={() => setIsQRModalOpen(false)} />
+      )}
+
+      {isPromptModalOpen && (
+        <PromptGuideModal onClose={() => setIsPromptModalOpen(false)} />
       )}
 
     </div>

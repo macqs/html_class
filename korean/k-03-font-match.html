@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>같은 글자 짝짓기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 설정 */
+        :root {
+            --bg-color: #eff6ff;        /* 배경색 (연한 파랑) */
+            --card-back: #3b82f6;       /* 카드 뒷면 색상 */
+            --text-color: #1e3a8a;      /* 글자색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            width: 100%;
+            perspective: 1000px; /* 카드 뒤집기 효과용 */
+        }
+
+        .card {
+            aspect-ratio: 3/4;
+            background-color: transparent;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card.matched {
+            opacity: 0; /* 맞추면 사라짐 */
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: bold;
+            border: 2px solid white;
+        }
+
+        .card-front {
+            background-color: var(--card-back);
+            color: white;
+            font-size: 2rem;
+        }
+
+        .card-back {
+            background-color: white;
+            color: var(--text-color);
+            transform: rotateY(180deg);
+            font-size: 2.5rem; /* 글자 크기 */
+        }
+
+        /* 폰트 다양성을 위해 클래스 추가 가능 */
+        .font-1 { font-family: 'Gungsuh', serif; }
+        .font-2 { font-family: 'Dotum', sans-serif; }
+        .font-3 { font-family: 'Gulim', sans-serif; }
+
+        .controls {
+            margin-top: 30px;
+        }
+
+        button {
+            background-color: var(--card-back);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🔡 같은 글자 찾기 (폰트) <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2국어01-02] 글자 모양 변별하기</span></h1>
+        <p>카드를 뒤집어 같은 글자를 찾아보세요.</p>
+    </div>
+
+    <div class="game-grid" id="grid">
+        <!-- 카드가 여기에 생성됩니다 -->
+    </div>
+
+    <div class="controls">
+        <button onclick="resetGame()">다시 시작 🔄</button>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 게임에 사용할 글자 목록 (총 8쌍 = 16장) */
+        const words = ['가', '나', '다', '라', '마', '바', '사', '아'];
+        
+        let cards = []; // 생성된 카드 데이터
+        let flippedCards = []; // 현재 뒤집힌 카드
+        let matchedCount = 0;
+        let isLocked = false; // 클릭 방지
+
+        function initGame() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            matchedCount = 0;
+            flippedCards = [];
+            isLocked = false;
+
+            // 글자 쌍 만들기 (2개씩)
+            let deck = [...words, ...words];
+            
+            // 섞기 (Fisher-Yates Shuffle)
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+
+            // 카드 생성
+            deck.forEach((char, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.char = char;
+                card.dataset.index = index;
+                
+                // [선생님 수정 포인트 3] 카드 뒷면 디자인 (? 대신 다른 거 넣어도 돼요)
+                card.innerHTML = `
+                    <div class="card-face card-front">?</div>
+                    <div class="card-face card-back">${char}</div>
+                `;
+
+                card.onclick = () => flipCard(card);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(card) {
+            if (isLocked) return;
+            if (card.classList.contains('flipped')) return; // 이미 뒤집힌 카드 무시
+            
+            card.classList.add('flipped');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            isLocked = true;
+            const [card1, card2] = flippedCards;
+            const match = card1.dataset.char === card2.dataset.char;
+
+            if (match) {
+                // 정답!
+                playSuccess();
+                setTimeout(() => {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    matchedCount++;
+                    if (matchedCount === words.length) {
+                        setTimeout(() => alert("축하합니다! 모두 찾았습니다! 🎉"), 500);
+                    }
+                    resetTurn();
+                }, 800);
+            } else {
+                // 오답! 다시 뒤집기
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    resetTurn();
+                }, 1000);
+            }
+        }
+
+        function resetTurn() {
+            flippedCards = [];
+            isLocked = false;
+        }
+        
+        function playSuccess() {
+            // 띵동 소리
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime); // 도
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // 미
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function resetGame() {
+            initGame();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

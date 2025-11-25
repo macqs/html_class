@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>숫자 순서 잇기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #f0fdfa;        /* 배경색 (민트) */
+            --dot-color: #0d9488;       /* 점 색상 */
+            --dot-bg: #ccfbf1;          /* 점 배경색 */
+            --line-color: #14b8a6;      /* 선 색상 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #115e59;
+            margin: 0;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            border: 5px solid #99f6e4;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+        }
+
+        .dot {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--dot-bg);
+            border: 3px solid var(--dot-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--dot-color);
+            cursor: pointer;
+            transform: translate(-50%, -50%); /* 중심 기준 배치 */
+            transition: transform 0.2s;
+            z-index: 10;
+        }
+
+        .dot:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            background: var(--dot-color);
+            color: white;
+        }
+
+        .dot.active {
+            background: #facc15; /* 현재 눌러야 할 점 (노란색) */
+            border-color: #ca8a04;
+            color: #854d0e;
+            animation: pulse 1s infinite;
+        }
+
+        .dot.connected {
+            background: var(--dot-color);
+            color: white;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: var(--dot-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        button:hover { background-color: #0f766e; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+        }
+        
+        /* 완성 후 나타날 숨겨진 그림 */
+        .hidden-image {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: 60%;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 1s;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🔢 숫자 순서 잇기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학01-05] 수의 순서 알기</span></h1>
+        <p>1부터 순서대로 숫자를 눌러보세요.</p>
+    </div>
+
+    <div class="canvas-container" id="container">
+        <div class="hidden-image" id="hiddenImg" style="background-image: url('https://toss.tech/resource/img/logo_toss_symbol_blue.png'); /* 예시 이미지 */"></div>
+        <canvas id="gameCanvas"></canvas>
+        <!-- 점들이 여기에 생성됩니다 -->
+    </div>
+
+    <div class="controls">
+        <button onclick="initGame()">다시 하기 🔄</button>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 점들의 위치 좌표 (x, y: 0~100% 비율) */
+        // 선생님이 좌표를 바꾸면 별, 하트, 세모 등 다양한 모양을 만들 수 있습니다.
+        const points = [
+            { n: 1, x: 50, y: 10 },
+            { n: 2, x: 90, y: 40 },
+            { n: 3, x: 70, y: 90 },
+            { n: 4, x: 30, y: 90 },
+            { n: 5, x: 10, y: 40 }
+        ];
+        // 위 좌표는 오각형(별) 모양 배치입니다.
+
+        let currentStep = 1;
+        let canvas, ctx;
+
+        function initGame() {
+            const container = document.getElementById('container');
+            
+            // 기존 점 제거
+            document.querySelectorAll('.dot').forEach(el => el.remove());
+            
+            // 이미지 숨기기
+            document.getElementById('hiddenImg').style.opacity = '0';
+
+            // 캔버스 초기화
+            canvas = document.getElementById('gameCanvas');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            currentStep = 1;
+
+            // 점 생성
+            points.forEach(p => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.innerText = p.n;
+                dot.style.left = p.x + '%';
+                dot.style.top = p.y + '%';
+                dot.dataset.n = p.n;
+                
+                if (p.n === 1) dot.classList.add('active');
+
+                dot.onclick = () => handleDotClick(dot, p);
+                container.appendChild(dot);
+            });
+        }
+
+        function handleDotClick(dot, point) {
+            if (parseInt(dot.dataset.n) !== currentStep) {
+                // 잘못된 순서
+                shake(dot);
+                playWrong();
+                return;
+            }
+
+            // 올바른 순서
+            dot.classList.remove('active');
+            dot.classList.add('connected');
+            playClick();
+
+            // 선 그리기 (이전 점이 있으면)
+            if (currentStep > 1) {
+                const prevPoint = points[currentStep - 2];
+                drawLine(prevPoint, point);
+            }
+
+            currentStep++;
+
+            // 다음 점 활성화
+            const nextDot = document.querySelector(`.dot[data-n="${currentStep}"]`);
+            if (nextDot) {
+                nextDot.classList.add('active');
+            } else {
+                // 마지막 점 도달! (1번 점으로 연결해서 도형 닫기)
+                const firstPoint = points[0];
+                drawLine(point, firstPoint);
+                completeGame();
+            }
+        }
+
+        function drawLine(p1, p2) {
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            const x1 = (p1.x / 100) * w;
+            const y1 = (p1.y / 100) * h;
+            const x2 = (p2.x / 100) * w;
+            const y2 = (p2.y / 100) * h;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--line-color');
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        function completeGame() {
+            playSuccess();
+            // [선생님 수정 포인트 3] 완성 시 축하 메시지나 이미지 표시
+            // 여기서는 숨겨진 이미지를 서서히 보여줍니다.
+            document.getElementById('hiddenImg').style.opacity = '1';
+            setTimeout(() => alert("와! 멋진 모양이 완성되었어요! 🎉"), 500);
+        }
+
+        function shake(el) {
+            el.style.transform = "translate(-50%, -50%) translateX(10px)";
+            setTimeout(() => {
+                el.style.transform = "translate(-50%, -50%) translateX(-10px)";
+                setTimeout(() => {
+                    el.style.transform = "translate(-50%, -50%)";
+                }, 100);
+            }, 100);
+        }
+        
+        function playClick() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+        
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
+            osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.6);
+        }
+
+        // 창 크기 변경 시 캔버스 리셋
+        window.addEventListener('resize', initGame);
+
+        // 시작
+        setTimeout(initGame, 100); // 로딩 시간 고려
+    </script>
+</body>
+</html>

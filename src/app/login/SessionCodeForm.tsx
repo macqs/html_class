@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KeyRound } from 'lucide-react';
+import ExtensionToolButton from '@/components/shared/ExtensionToolButton';
 
 interface SessionCodeFormProps {
   errorMessage?: string;
@@ -28,7 +29,6 @@ export function SessionCodeForm({ errorMessage }: SessionCodeFormProps) {
           <KeyRound size={28} />
         </div>
         <h1 className="text-2xl font-bold text-zinc-900">세션 식별 코드 입력</h1>
-        <p className="mt-2 text-sm text-zinc-500">강사에게 받은 4~6자리 숫자 코드를 입력하면 바로 입장할 수 있습니다.</p>
 
         {errorMessage && <p className="mt-4 rounded-xl bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600">{errorMessage}</p>}
 
@@ -48,7 +48,6 @@ export function SessionCodeForm({ errorMessage }: SessionCodeFormProps) {
               placeholder="예: 482931"
               className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-xl font-mono tracking-widest text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
-            <p className="mt-2 text-xs text-zinc-500">숫자만 입력하세요.</p>
           </div>
 
           <button
@@ -59,6 +58,10 @@ export function SessionCodeForm({ errorMessage }: SessionCodeFormProps) {
             {isSubmitting ? '확인 중...' : '세션 찾기'}
           </button>
         </form>
+
+        <div className="mt-8 border-t border-zinc-100 pt-6">
+          <ExtensionToolButton />
+        </div>
       </div>
     </div>
   );

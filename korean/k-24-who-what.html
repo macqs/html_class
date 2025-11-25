@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>누가 무엇을 하나요?</title>
+    <style>
+        /* [선생님 수정 포인트 1] 테마 */
+        :root {
+            --bg-color: #fdf4ff;
+            --box-bg: #ffffff;
+            --highlight: #d946ef;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: #86198f; margin-bottom: 30px; }
+
+        .scene-area {
+            width: 300px;
+            height: 300px;
+            background: white;
+            border: 5px solid #f0abfc;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8rem; /* 이모지 크기 */
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .sentence-builder {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.6);
+            padding: 20px;
+            border-radius: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .select-box {
+            padding: 15px;
+            font-size: 1.5rem;
+            border: 3px solid #d8b4fe;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .particle {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* 옵션 모달 (드롭다운 대신 버튼 목록) */
+        .options-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .modal-btn:hover { background: #f3e8ff; }
+
+        .check-btn {
+            margin-top: 30px;
+            padding: 12px 40px;
+            background: var(--highlight);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .result-msg {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #86198f;
+            min-height: 30px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧐 누가 무엇을 하나요? <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[6국어01-02] 문장 구조 익히기</span></h1>
+
+    <div class="scene-area" id="sceneImage">
+        <!-- 그림이 여기에 표시됨 -->
+    </div>
+
+    <div class="sentence-builder">
+        <div class="select-box" id="whoBox" onclick="openModal('who')">누가?</div>
+        <div class="particle">가/이</div>
+        <div class="select-box" id="whatBox" onclick="openModal('what')">무엇을?</div>
+        <div class="particle">을/를</div>
+        <div class="select-box" id="actionBox" onclick="openModal('action')">해요</div>
+    </div>
+
+    <button class="check-btn" onclick="checkAnswer()">완성하기 ✨</button>
+    <div class="result-msg" id="result"></div>
+
+    <button onclick="nextProblem()" style="margin-top:20px; padding:10px; border:none; background:none; text-decoration:underline; cursor:pointer; color:#666;">다음 문제</button>
+
+    <!-- 선택 모달 -->
+    <div class="options-modal" id="modal">
+        <div class="modal-content" id="modalList">
+            <!-- 옵션 버튼들이 여기에 생성됨 -->
+        </div>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 문제 데이터 */
+        const problems = [
+            { 
+                icon: "👨‍🍳", 
+                who: "요리사", what: "음식", action: "만들어요",
+                // 오답 보기들 (섞어서 보여줌)
+                options: {
+                    who: ["요리사", "경찰관", "의사"],
+                    what: ["음식", "범인", "주사"],
+                    action: ["만들어요", "잡아요", "치료해요"]
+                }
+            },
+            { 
+                icon: "⚽", 
+                who: "선수", what: "축구", action: "해요",
+                options: {
+                    who: ["선수", "가수", "화가"],
+                    what: ["축구", "노래", "그림"],
+                    action: ["해요", "불러요", "그려요"]
+                }
+            },
+            { 
+                icon: "🚌", 
+                who: "학생", what: "버스", action: "타요",
+                options: {
+                    who: ["학생", "강아지", "나무"],
+                    what: ["버스", "밥", "물"],
+                    action: ["타요", "먹어요", "마셔요"]
+                }
+            }
+        ];
+
+        let currentProblem = null;
+        let selected = { who: null, what: null, action: null };
+        let currentModalType = null;
+
+        function initGame() {
+            nextProblem();
+        }
+
+        function nextProblem() {
+            currentProblem = problems[Math.floor(Math.random() * problems.length)];
+            
+            document.getElementById('sceneImage').innerText = currentProblem.icon;
+            
+            // 선택 초기화
+            selected = { who: null, what: null, action: null };
+            document.getElementById('whoBox').innerText = "누가?";
+            document.getElementById('whatBox').innerText = "무엇을?";
+            document.getElementById('actionBox').innerText = "어떻게?";
+            
+            document.getElementById('result').innerText = "";
+            document.getElementById('whoBox').style.background = "white";
+            document.getElementById('whatBox').style.background = "white";
+            document.getElementById('actionBox').style.background = "white";
+        }
+
+        function openModal(type) {
+            currentModalType = type;
+            const modal = document.getElementById('modal');
+            const list = document.getElementById('modalList');
+            list.innerHTML = '';
+
+            // 해당 타입의 보기 목록 가져오기 (정답 + 오답)
+            const opts = currentProblem.options[type];
+            
+            // 섞기
+            const shuffled = [...opts].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(txt => {
+                const btn = document.createElement('button');
+                btn.className = 'modal-btn';
+                btn.innerText = txt;
+                btn.onclick = () => selectItem(txt);
+                list.appendChild(btn);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        function selectItem(text) {
+            selected[currentModalType] = text;
+            
+            const box = document.getElementById(currentModalType + 'Box');
+            box.innerText = text;
+            box.style.backgroundColor = '#e9d5ff'; // 선택됨 표시
+
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function checkAnswer() {
+            if (!selected.who || !selected.what || !selected.action) {
+                alert("빈칸을 모두 채워주세요!");
+                return;
+            }
+
+            const isCorrect = 
+                selected.who === currentProblem.who &&
+                selected.what === currentProblem.what &&
+                selected.action === currentProblem.action;
+
+            const resultDiv = document.getElementById('result');
+            
+            if (isCorrect) {
+                resultDiv.innerText = "정답입니다! 문장이 참 멋지네요! 🎉";
+                resultDiv.style.color = "#16a34a";
+                playSuccess();
+            } else {
+                resultDiv.innerText = "어라? 그림과 조금 다른 것 같아요. 🤔";
+                resultDiv.style.color = "#dc2626";
+                playWrong();
+            }
+        }
+
+        // 모달 닫기 (배경 클릭 시)
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') {
+                document.getElementById('modal').style.display = 'none';
+            }
+        });
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

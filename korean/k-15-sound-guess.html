@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소리 듣고 맞히기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #f0fdfa;        /* 배경색 */
+            --btn-bg: #0d9488;          /* 버튼색 */
+            --text-color: #115e59;      /* 글자색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { margin-bottom: 20px; }
+
+        .play-btn {
+            width: 150px;
+            height: 150px;
+            background: white;
+            border: 5px solid var(--btn-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+            margin-bottom: 40px;
+        }
+
+        .play-btn:active { transform: scale(0.95); }
+        
+        .play-btn.playing {
+            animation: pulse 1s infinite;
+            background: var(--btn-bg);
+            color: white;
+        }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .option-card {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            border-color: #99f6e4;
+        }
+
+        .option-icon { font-size: 4rem; display: block; margin-bottom: 10px; }
+        .option-text { font-size: 1.5rem; font-weight: bold; }
+
+        .option-card.correct {
+            background-color: #ccfbf1;
+            border-color: #0d9488;
+            color: #0f766e;
+        }
+
+        .option-card.wrong {
+            background-color: #fee2e2;
+            border-color: #ef4444;
+            opacity: 0.6;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(13, 148, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>👂 소리를 듣고 무엇인지 맞춰보세요! <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2국어01-01] 소리 듣고 구별하기</span></h1>
+
+    <div class="play-btn" id="playBtn" onclick="playSound()">
+        🔊
+    </div>
+
+    <div class="options-container" id="optionsArea">
+        <!-- 보기 카드가 여기에 생성됩니다 -->
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 문제 데이터 */
+        // soundType: 'tts'(글자 읽어주기) 또는 'effect'(효과음 - mp3 URL 필요)
+        // 여기서는 별도 파일 없이 작동하도록 TTS(말하기) 기능을 활용해 소리 퀴즈를 만듭니다.
+        // 물론 mp3 파일이 있다면 soundUrl에 주소를 넣고 코드를 조금만 고치면 됩니다.
+        
+        const quizzes = [
+            { text: "멍멍! 멍멍!", answer: "강아지", icon: "🐶", wrong: ["고양이", "소", "닭"] },
+            { text: "야옹~ 야옹~", answer: "고양이", icon: "🐱", wrong: ["강아지", "오리", "돼지"] },
+            { text: "음매~ 음매~", answer: "소", icon: "🐮", wrong: ["말", "양", "호랑이"] },
+            { text: "꼬끼오!", answer: "닭", icon: "🐔", wrong: ["병아리", "참새", "비둘기"] },
+            { text: "꿀꿀! 꿀꿀!", answer: "돼지", icon: "🐷", wrong: ["코끼리", "곰", "토끼"] }
+        ];
+
+        let currentQuiz = null;
+        let isPlaying = false;
+
+        function initGame() {
+            nextQuiz();
+        }
+
+        function nextQuiz() {
+            // 랜덤 문제 선택
+            currentQuiz = quizzes[Math.floor(Math.random() * quizzes.length)];
+            
+            // 보기 생성
+            const optionsArea = document.getElementById('optionsArea');
+            optionsArea.innerHTML = '';
+            
+            let choices = [
+                { text: currentQuiz.answer, icon: currentQuiz.icon, isCorrect: true },
+                // 오답 중 랜덤 3개 선택 (여기선 3개 고정이므로 그냥 다 씀)
+                ...currentQuiz.wrong.map(w => ({ 
+                    text: w, 
+                    // 오답 아이콘은 간단히 ? 로 하거나 매핑 데이터가 필요함. 
+                    // 여기서는 간단히 텍스트만 보여주거나, 퀴즈 데이터 구조를 확장해야 함.
+                    // 편의상 오답 아이콘은 '❓'로 통일합니다. (선생님이 데이터 확장 가능)
+                    icon: "❓", 
+                    isCorrect: false 
+                }))
+            ];
+
+            choices.sort(() => Math.random() - 0.5);
+
+            choices.forEach(choice => {
+                const div = document.createElement('div');
+                div.className = 'option-card';
+                div.innerHTML = `
+                    <span class="option-icon">${choice.icon}</span>
+                    <span class="option-text">${choice.text}</span>
+                `;
+                div.onclick = () => checkAnswer(div, choice.isCorrect);
+                optionsArea.appendChild(div);
+            });
+            
+            // 자동 재생
+            setTimeout(playSound, 500);
+        }
+
+        function playSound() {
+            if (isPlaying) return;
+            
+            const btn = document.getElementById('playBtn');
+            btn.classList.add('playing');
+            isPlaying = true;
+
+            // TTS로 소리 흉내내기
+            const msg = new SpeechSynthesisUtterance(currentQuiz.text);
+            msg.lang = 'ko-KR';
+            msg.rate = 0.8; // 천천히
+            msg.pitch = 1.2; // 약간 높은 톤 (동물 소리 느낌)
+            
+            msg.onend = () => {
+                btn.classList.remove('playing');
+                isPlaying = false;
+            };
+            
+            window.speechSynthesis.speak(msg);
+        }
+
+        function checkAnswer(element, isCorrect) {
+            if (isCorrect) {
+                element.classList.add('correct');
+                playEffect(true);
+                setTimeout(() => {
+                    alert("정답입니다! 참 잘했어요! 🎉");
+                    nextQuiz();
+                }, 500);
+            } else {
+                element.classList.add('wrong');
+                playEffect(false);
+            }
+        }
+
+        function playEffect(success) {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            if (success) {
+                osc.frequency.setValueAtTime(600, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.1);
+            } else {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+            }
+            
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

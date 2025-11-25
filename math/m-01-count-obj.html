@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사물 개수 세기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 테마 색상 */
+        :root {
+            --bg-color: #ecfccb;        /* 배경색 (연두색) */
+            --card-bg: #ffffff;         /* 카드 배경 */
+            --btn-color: #65a30d;       /* 버튼 색상 */
+            --text-color: #365314;      /* 글자색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 10px 0;
+        }
+
+        .game-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .object-area {
+            min-height: 200px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 3px dashed #bef264;
+            border-radius: 15px;
+        }
+
+        .object-item {
+            font-size: 4rem;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .object-item:hover {
+            transform: scale(1.2);
+        }
+
+        .object-item.counted {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .number-pad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .num-btn {
+            background: white;
+            border: 2px solid var(--btn-color);
+            color: var(--btn-color);
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .num-btn:hover {
+            background: var(--btn-color);
+            color: white;
+        }
+
+        .num-btn:active {
+            transform: scale(0.95);
+        }
+
+        .feedback {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            height: 40px;
+            color: #ea580c;
+        }
+
+        .feedback.success {
+            color: #16a34a;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 선생님 컨트롤 패널 (화면 하단 작게) */
+        .teacher-controls {
+            margin-top: 30px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+        
+        .teacher-controls:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🍎 사물 개수 세기 <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[2수학01-01] 구체물 개수 세기</span></h1>
+        <p>그림을 세어보고 알맞은 숫자를 눌러보세요.</p>
+    </div>
+
+    <div class="game-container">
+        <!-- 물체가 표시되는 영역 -->
+        <div id="objectArea" class="object-area">
+            <!-- 자바스크립트가 여기에 그림을 채워줍니다 -->
+        </div>
+
+        <!-- 숫자 키패드 -->
+        <div class="number-pad" id="numPad">
+            <button class="num-btn" onclick="checkAnswer(1)">1</button>
+            <button class="num-btn" onclick="checkAnswer(2)">2</button>
+            <button class="num-btn" onclick="checkAnswer(3)">3</button>
+            <button class="num-btn" onclick="checkAnswer(4)">4</button>
+            <button class="num-btn" onclick="checkAnswer(5)">5</button>
+            <button class="num-btn" onclick="checkAnswer(6)">6</button>
+            <button class="num-btn" onclick="checkAnswer(7)">7</button>
+            <button class="num-btn" onclick="checkAnswer(8)">8</button>
+            <button class="num-btn" onclick="checkAnswer(9)">9</button>
+            <button class="num-btn" onclick="checkAnswer(10)">10</button>
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+    </div>
+
+    <div class="teacher-controls">
+        <button onclick="nextProblem()">다음 문제 ➡️</button>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 아이들이 좋아하는 그림으로 바꿔보세요! */
+        const items = ["🍎", "🍌", "🐶", "🐱", "⚽", "🚗", "⭐", "🍪"];
+        
+        /* [선생님 수정 포인트 3] 문제에 나올 최대 개수 설정 (1~10) */
+        const maxCount = 5; 
+
+        let currentCount = 0;
+
+        function initGame() {
+            nextProblem();
+        }
+
+        function nextProblem() {
+            const area = document.getElementById('objectArea');
+            const feedback = document.getElementById('feedback');
+            
+            area.innerHTML = '';
+            feedback.innerText = '';
+            feedback.className = 'feedback';
+
+            // 랜덤 개수 (1 ~ maxCount)
+            currentCount = Math.floor(Math.random() * maxCount) + 1;
+            
+            // 랜덤 아이템 선택
+            const item = items[Math.floor(Math.random() * items.length)];
+
+            // 아이템 배치
+            for(let i=0; i<currentCount; i++) {
+                const div = document.createElement('div');
+                div.className = 'object-item';
+                div.innerText = item;
+                
+                // 아이들이 하나씩 세면서 클릭할 수 있게 (클릭하면 흐려짐)
+                div.onclick = function() {
+                    this.classList.toggle('counted');
+                };
+                
+                area.appendChild(div);
+            }
+        }
+
+        function checkAnswer(num) {
+            const feedback = document.getElementById('feedback');
+            
+            if(num === currentCount) {
+                feedback.innerText = "정답입니다! 참 잘했어요! 🎉";
+                feedback.className = 'feedback success';
+                playSuccess();
+                setTimeout(nextProblem, 2000);
+            } else {
+                feedback.innerText = "다시 한번 세어볼까요? 🤔";
+                feedback.className = 'feedback';
+                playWrong();
+            }
+        }
+        
+        function playSuccess() {
+            // 딩동댕 소리 (Web Audio API)
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime); // 도
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // 미
+            osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // 솔
+            
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        }
+
+        function playWrong() {
+            // 땡 소리
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

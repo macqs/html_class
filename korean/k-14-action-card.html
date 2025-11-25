@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>행동 단어 맞히기</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 */
+        :root {
+            --bg-color: #fef2f2;        /* 배경색 (연한 빨강) */
+            --card-bg: #ffffff;         /* 카드 배경 */
+            --btn-color: #ef4444;       /* 버튼 색상 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        h1 { color: #991b1b; margin-bottom: 20px; }
+
+        .quiz-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .action-display {
+            font-size: 8rem; /* 이모지 크기 */
+            margin-bottom: 30px;
+            animation: bounce 2s infinite;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-option {
+            background: white;
+            border: 2px solid var(--btn-color);
+            color: var(--btn-color);
+            padding: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-option:hover {
+            background: var(--btn-color);
+            color: white;
+        }
+
+        .btn-option.correct {
+            background: #22c55e;
+            color: white;
+            border-color: #22c55e;
+        }
+
+        .btn-option.wrong {
+            background: #9ca3af;
+            color: white;
+            border-color: #9ca3af;
+            opacity: 0.5;
+        }
+
+        .score-display {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #7f1d1d;
+            font-weight: bold;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 500px) {
+            .action-display { font-size: 6rem; }
+            .btn-option { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏃‍♀️ 무엇을 하고 있을까요? <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[6국어01-02] 동작/상태 낱말 이해</span></h1>
+    
+    <div class="quiz-card">
+        <div class="action-display" id="emojiBox">
+            <!-- 이모지가 여기에 표시됨 -->
+        </div>
+
+        <div class="options" id="btnArea">
+            <!-- 정답 버튼들이 여기에 생성됨 -->
+        </div>
+    </div>
+
+    <div class="score-display">
+        맞힌 개수: <span id="score">0</span>
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 문제 데이터 (이모지, 정답, 오답들) */
+        const problems = [
+            { emoji: "🏃", answer: "달리다", wrong: ["자다", "먹다", "앉다"] },
+            { emoji: "😴", answer: "자다", wrong: ["달리다", "씻다", "놀다"] },
+            { emoji: "🍽️", answer: "먹다", wrong: ["입다", "쓰다", "보다"] },
+            { emoji: "🚿", answer: "씻다", wrong: ["자다", "가다", "오다"] },
+            { emoji: "📚", answer: "읽다", wrong: ["걷다", "뛰다", "자다"] },
+            { emoji: "🏊", answer: "수영하다", wrong: ["날다", "기다", "서다"] }
+        ];
+
+        let currentIdx = 0;
+        let score = 0;
+        let isSolved = false;
+
+        function initGame() {
+            score = 0;
+            document.getElementById('score').innerText = score;
+            problems.sort(() => Math.random() - 0.5); // 문제 섞기
+            currentIdx = 0;
+            loadProblem();
+        }
+
+        function loadProblem() {
+            isSolved = false;
+            const p = problems[currentIdx];
+            
+            document.getElementById('emojiBox').innerText = p.emoji;
+
+            // 보기 만들기
+            let options = [p.answer, ...p.wrong];
+            options.sort(() => Math.random() - 0.5);
+
+            const btnArea = document.getElementById('btnArea');
+            btnArea.innerHTML = '';
+
+            options.forEach(text => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = text;
+                btn.onclick = () => checkAnswer(btn, text, p.answer);
+                btnArea.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(btn, selected, correct) {
+            if (isSolved) return; // 이미 맞췄으면 클릭 방지
+
+            if (selected === correct) {
+                // 정답
+                isSolved = true;
+                btn.classList.add('correct');
+                playSuccess();
+                score++;
+                document.getElementById('score').innerText = score;
+                
+                setTimeout(() => {
+                    currentIdx++;
+                    if (currentIdx >= problems.length) {
+                        alert("모든 문제를 맞췄어요! 참 잘했어요! 🎉");
+                        initGame();
+                    } else {
+                        loadProblem();
+                    }
+                }, 1500);
+            } else {
+                // 오답
+                btn.classList.add('wrong');
+                playWrong();
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

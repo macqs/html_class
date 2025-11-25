@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그림-단어 매칭</title>
+    <style>
+        /* [선생님 수정 포인트 1] 스타일 설정 */
+        :root {
+            --bg-color: #fefce8;        /* 배경색 (연한 노랑) */
+            --card-bg: #ffffff;         /* 카드 배경 */
+            --btn-bg: #f59e0b;          /* 버튼색 (주황) */
+            --btn-hover: #d97706;       /* 버튼 마우스 올렸을 때 */
+            --text-color: #78350f;      /* 글자색 */
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        .quiz-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            border: 5px solid #fef08a;
+        }
+
+        .image-box {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 150px; /* 이모지 크기 */
+            background-color: #fef9c3;
+            border-radius: 20px;
+            border: 3px dashed #facc15;
+            animation: popIn 0.5s;
+        }
+        
+        /* 실제 이미지 쓸 경우를 위한 스타일 */
+        .image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 15px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid var(--btn-bg);
+            color: var(--text-color);
+            padding: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background-color: #fef3c7;
+            transform: translateY(-3px);
+        }
+
+        .option-btn.correct {
+            background-color: #22c55e;
+            color: white;
+            border-color: #22c55e;
+            animation: bounce 0.5s;
+        }
+
+        .option-btn.wrong {
+            background-color: #ef4444;
+            color: white;
+            border-color: #ef4444;
+            animation: shake 0.4s;
+        }
+
+        .score {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #b45309;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🖼️ 그림에 맞는 단어는? <span style="font-size:0.5em; color:#888; border:1px solid #ddd; padding:2px 5px; border-radius:5px; vertical-align:middle;">[4국어02-02] 그림에 알맞은 낱말 찾기</span></h1>
+    
+    <div class="quiz-container">
+        <div class="image-box" id="questionImage">
+            <!-- 문제가 여기에 표시됩니다 -->
+        </div>
+
+        <div class="options-grid" id="optionsArea">
+            <!-- 보기가 여기에 표시됩니다 -->
+        </div>
+    </div>
+
+    <div class="score">
+        정답: <span id="scoreCount">0</span>개
+    </div>
+
+    <script>
+        /* [선생님 수정 포인트 2] 문제 목록 (그림, 정답, 오답들) */
+        // image에 이모지 대신 "https://..." 이미지 주소를 넣어도 됩니다.
+        const quizData = [
+            { image: "🍎", answer: "사과", wrong: ["포도", "수박", "바나나"] },
+            { image: "🚌", answer: "버스", wrong: ["택시", "자전거", "비행기"] },
+            { image: "🐶", answer: "강아지", wrong: ["고양이", "오리", "호랑이"] },
+            { image: "☂️", answer: "우산", wrong: ["장화", "모자", "안경"] },
+            { image: "⏰", answer: "시계", wrong: ["달력", "전화기", "가방"] }
+        ];
+
+        let currentQuizIndex = 0;
+        let score = 0;
+        let isSolving = false; // 중복 클릭 방지
+
+        function initGame() {
+            score = 0;
+            document.getElementById('scoreCount').innerText = score;
+            // 문제 순서 섞기
+            quizData.sort(() => Math.random() - 0.5);
+            currentQuizIndex = 0;
+            loadQuiz();
+        }
+
+        function loadQuiz() {
+            isSolving = true;
+            const quiz = quizData[currentQuizIndex];
+            
+            // 이미지 표시 (이모지인지 URL인지 구분)
+            const imgBox = document.getElementById('questionImage');
+            if(quiz.image.startsWith('http') || quiz.image.includes('.')) {
+                imgBox.innerHTML = `<img src="${quiz.image}" alt="문제 그림">`;
+            } else {
+                imgBox.innerHTML = quiz.image;
+            }
+
+            // 보기 만들기 (정답 1개 + 오답 3개)
+            let options = [quiz.answer, ...quiz.wrong];
+            options.sort(() => Math.random() - 0.5); // 보기 순서 섞기
+
+            const optionsArea = document.getElementById('optionsArea');
+            optionsArea.innerHTML = '';
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(btn, opt, quiz.answer);
+                optionsArea.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(btn, selected, correct) {
+            if (!isSolving) return;
+            
+            const allBtns = document.querySelectorAll('.option-btn');
+            
+            if (selected === correct) {
+                // 정답
+                btn.classList.add('correct');
+                playSuccess();
+                score++;
+                document.getElementById('scoreCount').innerText = score;
+                isSolving = false;
+                
+                setTimeout(() => {
+                    nextQuiz();
+                }, 1500);
+            } else {
+                // 오답
+                btn.classList.add('wrong');
+                playWrong();
+                // 오답인 경우 다시 선택할 기회를 줌 (isSolving 유지)
+            }
+        }
+
+        function nextQuiz() {
+            currentQuizIndex++;
+            if (currentQuizIndex >= quizData.length) {
+                alert(`와! 모든 문제를 풀었어요! (총 ${score}점) 🎉`);
+                initGame(); // 다시 시작
+            } else {
+                loadQuiz();
+            }
+        }
+
+        function playSuccess() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function playWrong() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

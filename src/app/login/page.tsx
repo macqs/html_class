@@ -38,7 +38,7 @@ export default async function LoginPage(props: PageProps) {
   const participants = participantsResult.data as { seat_position: string }[] | null;
 
   if (!session) {
-    return <SessionCodeForm errorMessage="세션 정보를 찾을 수 없습니다. 담당자에게 문의해주세요." />;
+    return <SessionCodeForm />;
   }
 
   const occupiedSeats = participants ? participants.map((p) => p.seat_position) : [];
