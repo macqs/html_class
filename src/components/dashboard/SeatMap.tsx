@@ -32,9 +32,9 @@ export default function SeatMap({ layout, participants, onSeatClick, onSeatDoubl
   };
 
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <h3 className="mb-4 text-lg font-semibold text-zinc-900">좌석 배치도</h3>
-      <div className="mb-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))` }}>
+    <div className="rounded-lg border bg-white p-2 md:p-4">
+      <h3 className="mb-2 text-base font-semibold text-zinc-900 md:mb-4 md:text-lg">좌석 배치도</h3>
+      <div className="mb-2 grid gap-1 md:mb-4 md:gap-2" style={{ gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))` }}>
         {layout.labels.flat().map((seat) => {
           const participant = participantsBySeat[seat];
           const clickable = Boolean(participant && onSeatClick);
@@ -63,24 +63,24 @@ export default function SeatMap({ layout, participants, onSeatClick, onSeatDoubl
                 }
               }}
               disabled={!clickable}
-              className={`relative rounded-lg py-5 text-sm font-semibold text-white transition ${getStatusColor(
+              className={`relative min-h-[44px] rounded-lg py-2 text-xs font-semibold text-white transition md:py-5 md:text-sm ${getStatusColor(
                 participant?.status
               )} ${!clickable ? 'cursor-default opacity-80' : ''}`}
               title={participant ? `${participant.nickname} (${seat})` : seat}
             >
-              <div className="text-xs opacity-80">{seat}</div>
-              {participant && <div className="mt-1 truncate px-1 text-sm">{participant.nickname}</div>}
+              <div className="text-[10px] opacity-80 md:text-xs">{seat}</div>
+              {participant && <div className="mt-0.5 truncate px-0.5 text-[10px] md:mt-1 md:px-1 md:text-sm">{participant.nickname}</div>}
             </button>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap gap-4 text-sm text-zinc-600">
+      <div className="flex flex-wrap gap-2 text-xs text-zinc-600 md:gap-4 md:text-sm">
         <Legend color="bg-zinc-300" label="미접속" />
         <Legend color="bg-amber-500" label="대기" />
         <Legend color="bg-emerald-500" label="진행중" />
         <Legend color="bg-rose-500" label="도움필요" />
-        {onSeatRemove && <Legend color="bg-purple-200" label="Shift+클릭: 내보내기" />}
+        {onSeatRemove && <span className="hidden md:block"><Legend color="bg-purple-200" label="Shift+클릭: 내보내기" /></span>}
       </div>
     </div>
   );

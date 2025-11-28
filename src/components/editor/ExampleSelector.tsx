@@ -36,20 +36,21 @@ export default function ExampleSelector({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50"
+        className="flex h-11 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 md:h-auto md:gap-2 md:px-4 md:py-2"
       >
         <BookOpen size={16} />
-        예제 불러오기
+        <span>예제</span>
+        <span className="hidden sm:inline">불러오기</span>
         <ChevronDown size={14} />
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setIsOpen(false)}>
-          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 md:p-4" onClick={() => setIsOpen(false)}>
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl md:p-6" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-blue-700">예제 라이브러리</p>
-                <h3 className="text-lg font-bold text-zinc-950">공유된 코드와 기본 예제를 선택하세요</h3>
+                <h3 className="text-base font-bold text-zinc-950 md:text-lg">공유된 코드와 예제를 선택하세요</h3>
               </div>
               <button
                 type="button"

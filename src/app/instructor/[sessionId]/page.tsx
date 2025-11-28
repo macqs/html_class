@@ -244,12 +244,13 @@ export default function InstructorDashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
+      {/* 헤더 - 스마트폰/태블릿 반응형 */}
       <div className="border-b bg-white">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex flex-col gap-2 px-3 py-2 md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
           <StatsBar {...stats} />
           {session.session_code && (
-            <div className="ml-4 flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700">
-              <span className="font-mono text-lg text-zinc-900">코드 {session.session_code}</span>
+            <div className="flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-1.5 text-sm font-semibold text-zinc-700 md:ml-4 md:px-4 md:py-2">
+              <span className="font-mono text-base text-zinc-900 md:text-lg">코드 {session.session_code}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -267,7 +268,8 @@ export default function InstructorDashboardPage() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
+      {/* 메인 영역 - 스마트폰에서 SeatMap만, PC에서 SeatMap+Preview */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-2 md:gap-4 md:p-4">
         <div>
           <SeatMap
             layout={seatLayout}
@@ -281,41 +283,51 @@ export default function InstructorDashboardPage() {
             }}
           />
         </div>
-        <div className="w-full">
+        {/* 코드 미리보기 - PC/태블릿 가로모드에서만 표시 */}
+        <div className="hidden w-full lg:block">
           <div className="aspect-[16/10]">
             <CodePreviewPanel participant={previewParticipant} />
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2 border-t bg-white px-6 py-4">
+      {/* 하단 툴바 - 44px 최소 터치 영역 */}
+      <div className="flex flex-wrap gap-1.5 border-t bg-white px-2 py-2 md:gap-2 md:px-6 md:py-4">
         <button
           type="button"
           onClick={broadcastAnnouncement}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 md:h-auto md:gap-2 md:px-4 md:py-2"
         >
-          <Megaphone size={16} /> 전체 공지
+          <Megaphone size={16} />
+          <span className="hidden sm:inline">전체 공지</span>
+          <span className="sm:hidden">공지</span>
         </button>
         <button
           type="button"
           onClick={openExamplePicker}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700 md:h-auto md:gap-2 md:px-4 md:py-2"
         >
-          <FileText size={16} /> 예제 배포
+          <FileText size={16} />
+          <span className="hidden sm:inline">예제 배포</span>
+          <span className="sm:hidden">예제</span>
         </button>
         <button
           type="button"
           onClick={openShareModal}
-          className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+          className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 text-sm font-semibold text-white hover:bg-purple-700 md:h-auto md:gap-2 md:px-4 md:py-2"
         >
-          <Award size={16} /> 우수작 공유
+          <Award size={16} />
+          <span className="hidden sm:inline">우수작 공유</span>
+          <span className="sm:hidden">우수작</span>
         </button>
         <button
           type="button"
           onClick={endSession}
-          className="ml-auto flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+          className="ml-auto flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-3 text-sm font-semibold text-white hover:bg-rose-700 md:h-auto md:gap-2 md:px-4 md:py-2"
         >
-          <Power size={16} /> 세션 종료
+          <Power size={16} />
+          <span className="hidden sm:inline">세션 종료</span>
+          <span className="sm:hidden">종료</span>
         </button>
       </div>
 

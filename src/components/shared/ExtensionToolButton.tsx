@@ -20,10 +20,11 @@ export default function ExtensionToolButton({ className = '', simple = false }: 
         type="button"
         onClick={handleClick}
         title="윈도우 10/11 확장자 변경 도구 (.txt → .html). .reg 실행 권장, 실패 시 .bat 사용"
-        className={`flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 ${className}`}
+        className={`flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 md:h-auto md:gap-2 md:py-2 ${className}`}
       >
         <Download size={16} />
-        <span>확장자 도구</span>
+        <span className="hidden sm:inline">확장자 도구</span>
+        <span className="sm:hidden">도구</span>
       </button>
     );
   }
