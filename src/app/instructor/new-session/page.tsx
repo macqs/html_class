@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, Users, Rows, Columns } from 'lucide-react';
+import { Calendar, Users, Rows, Columns, Divide } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
 import { generateSeatLabels } from '@/lib/utils';
@@ -18,6 +18,8 @@ export default function NewSessionPage() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 16));
   const [rows, setRows] = useState(5);
   const [cols, setCols] = useState(8);
+  const [hasAisle, setHasAisle] = useState(false);
+  const [aislePosition, setAislePosition] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,11 +43,15 @@ export default function NewSessionPage() {
     setError('');
 
     try {
-      const seatLayout = {
+      const seatLayout: { rows: number; cols: number; labels: string[][]; aisleAfterCol?: number } = {
         rows,
         cols,
         labels: generateSeatLabels(rows, cols),
       };
+
+      if (hasAisle && aislePosition !== null) {
+        seatLayout.aisleAfterCol = aislePosition;
+      }
 
       const sessionCode = await generateSessionCode();
 
@@ -153,7 +159,7 @@ export default function NewSessionPage() {
                   id="rows"
                   type="number"
                   min={1}
-                  max={10}
+                  max={15}
                   value={rows}
                   onChange={(event) => setRows(Number(event.target.value))}
                   className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -168,13 +174,51 @@ export default function NewSessionPage() {
                   id="cols"
                   type="number"
                   min={1}
-                  max={10}
+                  max={15}
                   value={cols}
                   onChange={(event) => setCols(Number(event.target.value))}
                   className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   required
                 />
               </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4">
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={hasAisle}
+                  onChange={(event) => {
+                    setHasAisle(event.target.checked);
+                    if (event.target.checked && aislePosition === null) {
+                      setAislePosition(Math.floor((cols - 1) / 2));
+                    }
+                  }}
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                />
+                <Divide size={18} className="text-blue-600" />
+                <span className="text-sm font-semibold text-zinc-700">중앙 통로 추가</span>
+              </label>
+
+              {hasAisle && (
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-medium text-zinc-600" htmlFor="aislePosition">
+                    통로 위치 (열 번호 뒤에 통로 배치)
+                  </label>
+                  <select
+                    id="aislePosition"
+                    value={aislePosition ?? Math.floor((cols - 1) / 2)}
+                    onChange={(event) => setAislePosition(Number(event.target.value))}
+                    className="w-full rounded-xl border border-zinc-200 px-4 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    {Array.from({ length: cols - 1 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i + 1}열 뒤 (좌측 {i + 1}칸 / 우측 {cols - i - 1}칸)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl bg-white/70 px-4 py-3 text-sm font-semibold text-zinc-800">

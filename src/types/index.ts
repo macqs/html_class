@@ -2,6 +2,7 @@ export interface SeatLayout {
   rows: number;
   cols: number;
   labels: string[][];
+  aisleAfterCol?: number; // 중앙 통로: 이 열 뒤에 통로 배치 (0-indexed)
 }
 
 export interface SeatLayoutPreset extends SeatLayout {
