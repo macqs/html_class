@@ -252,7 +252,7 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
         </div>
 
         {/* 워드클라우드 전체화면 */}
-        <div className="min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
+        <div className="min-h-[80vh] flex-1 overflow-hidden bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
           <WordCloudDisplay 
             words={words} 
             onWordClick={setSelectedWord}
