@@ -12,6 +12,7 @@ import PreviewFrame from '@/components/editor/PreviewFrame';
 import ExampleSelector, { LocalExampleItem } from '@/components/editor/ExampleSelector';
 import ExtensionToolButton from '@/components/shared/ExtensionToolButton';
 import { useParticipantRealtime } from '@/hooks/useParticipantRealtime';
+import { ParticipantWordCloud } from '@/components/wordcloud';
 
 const DEFAULT_HTML = `<!DOCTYPE html>
 <html lang="ko">
@@ -709,6 +710,11 @@ export default function ParticipantPage() {
           {isSaving && <span className="ml-2 text-blue-600">저장 중...</span>}
         </div>
       </header>
+
+      {/* 워드클라우드 (활성화 시 표시) */}
+      <div className="px-2 pt-2 md:px-4 md:pt-4">
+        <ParticipantWordCloud sessionId={sessionId} participantId={participant.id} />
+      </div>
 
       {/* 메인 영역 - 리사이저 포함 */}
       <main

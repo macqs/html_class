@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Megaphone, FileText, Award, Power, X } from 'lucide-react';
+import { Megaphone, FileText, Award, Power, X, Cloud } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { ExampleCode, Participant, SeatLayout, Session } from '@/types';
 import StatsBar from '@/components/dashboard/StatsBar';
@@ -10,6 +10,7 @@ import SeatMap from '@/components/dashboard/SeatMap';
 import CodePreviewPanel from '@/components/dashboard/CodePreviewPanel';
 import ParticipantModal from '@/components/dashboard/ParticipantModal';
 import { useInstructorRealtime } from '@/hooks/useInstructorRealtime';
+import { WordCloudPanel } from '@/components/wordcloud';
 
 interface ActivityLogEntry {
   id: string;
@@ -38,6 +39,7 @@ export default function InstructorDashboardPage() {
   const [customCode, setCustomCode] = useState('');
   const [customCodeTitle, setCustomCodeTitle] = useState('');
   const [isSendingMultiple, setIsSendingMultiple] = useState(false);
+  const [isWordCloudOpen, setIsWordCloudOpen] = useState(false);
 
   useEffect(() => {
     loadSession();
@@ -322,6 +324,15 @@ export default function InstructorDashboardPage() {
         </button>
         <button
           type="button"
+          onClick={() => setIsWordCloudOpen(true)}
+          className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-cyan-600 px-3 text-sm font-semibold text-white hover:bg-cyan-700 md:h-auto md:gap-2 md:px-4 md:py-2"
+        >
+          <Cloud size={16} />
+          <span className="hidden sm:inline">워드클라우드</span>
+          <span className="sm:hidden">워드</span>
+        </button>
+        <button
+          type="button"
           onClick={endSession}
           className="ml-auto flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-3 text-sm font-semibold text-white hover:bg-rose-700 md:h-auto md:gap-2 md:px-4 md:py-2"
         >
@@ -529,6 +540,31 @@ export default function InstructorDashboardPage() {
                 <p className="rounded-xl bg-zinc-50 p-6 text-center text-sm text-zinc-500">참가자가 없습니다.</p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 워드클라우드 모달 */}
+      {isWordCloudOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setIsWordCloudOpen(false)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-zinc-900">워드클라우드</h2>
+              <button
+                type="button"
+                onClick={() => setIsWordCloudOpen(false)}
+                className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <WordCloudPanel sessionId={sessionId} />
           </div>
         </div>
       )}

@@ -100,3 +100,29 @@ export interface ValidationResponse {
   validation: string;
   errors?: string[];
 }
+
+// 워드클라우드 활동
+export interface WordCloud {
+  id: string;
+  session_id: string;
+  question: string;
+  is_active: boolean;
+  max_words_per_user: number;
+  created_at: string;
+  ended_at?: string;
+}
+
+// 워드클라우드 응답
+export interface WordCloudResponse {
+  id: string;
+  wordcloud_id: string;
+  participant_id: string;
+  word: string;
+  created_at: string;
+}
+
+// 워드클라우드 단어 집계
+export interface WordCount {
+  text: string;
+  value: number;
+}
