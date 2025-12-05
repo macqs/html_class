@@ -252,15 +252,11 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
         </div>
 
         {/* 워드클라우드 전체화면 */}
-        <div className="min-h-0 flex-1 overflow-auto bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
-          <div className="flex min-h-full items-center justify-center py-12">
-            <WordCloudDisplay 
-              words={words} 
-              minFontSize={50} 
-              maxFontSize={200}
-              onWordClick={setSelectedWord}
-            />
-          </div>
+        <div className="min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
+          <WordCloudDisplay 
+            words={words} 
+            onWordClick={setSelectedWord}
+          />
         </div>
 
         {/* 단어 클릭 시 응답자 모달 */}
