@@ -1,3 +1,6 @@
+-- td_sessions 테이블에 mode 컬럼 추가
+ALTER TABLE td_sessions ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'html';
+
 -- 워드클라우드 활동 테이블
 CREATE TABLE IF NOT EXISTS td_wordclouds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

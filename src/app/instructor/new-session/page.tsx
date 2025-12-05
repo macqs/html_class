@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, Users, Rows, Columns, Divide } from 'lucide-react';
+import { Calendar, Users, Rows, Columns, Divide, Code, Cloud } from 'lucide-react';
+import type { SessionMode } from '@/types';
 
 import { supabase } from '@/lib/supabase';
 import { generateSeatLabels } from '@/lib/utils';
@@ -20,6 +21,7 @@ export default function NewSessionPage() {
   const [cols, setCols] = useState(8);
   const [hasAisle, setHasAisle] = useState(false);
   const [aislePosition, setAislePosition] = useState<number | null>(null);
+  const [sessionMode, setSessionMode] = useState<SessionMode>('html');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -64,6 +66,7 @@ export default function NewSessionPage() {
           seat_layout: seatLayout,
           status: 'active',
           session_code: sessionCode,
+          mode: sessionMode,
         })
         .select()
         .single();
@@ -111,6 +114,55 @@ export default function NewSessionPage() {
               className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               required
             />
+          </section>
+
+          {/* 세션 모드 선택 */}
+          <section className="space-y-4">
+            <label className="block text-sm font-semibold text-zinc-700">세션 모드</label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setSessionMode('html')}
+                className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition ${
+                  sessionMode === 'html'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-zinc-200 bg-white hover:border-zinc-300'
+                }`}
+              >
+                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                  sessionMode === 'html' ? 'bg-blue-600 text-white' : 'bg-zinc-100 text-zinc-600'
+                }`}>
+                  <Code size={24} />
+                </div>
+                <div>
+                  <p className={`font-semibold ${sessionMode === 'html' ? 'text-blue-900' : 'text-zinc-900'}`}>
+                    HTML 실습 모드
+                  </p>
+                  <p className="text-sm text-zinc-500">코드 에디터, 미리보기, 도움 요청 등</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSessionMode('wordcloud')}
+                className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition ${
+                  sessionMode === 'wordcloud'
+                    ? 'border-cyan-500 bg-cyan-50'
+                    : 'border-zinc-200 bg-white hover:border-zinc-300'
+                }`}
+              >
+                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                  sessionMode === 'wordcloud' ? 'bg-cyan-600 text-white' : 'bg-zinc-100 text-zinc-600'
+                }`}>
+                  <Cloud size={24} />
+                </div>
+                <div>
+                  <p className={`font-semibold ${sessionMode === 'wordcloud' ? 'text-cyan-900' : 'text-zinc-900'}`}>
+                    워드클라우드 모드
+                  </p>
+                  <p className="text-sm text-zinc-500">실시간 단어 수집 및 시각화</p>
+                </div>
+              </button>
+            </div>
           </section>
 
           <section className="grid gap-6 md:grid-cols-2">

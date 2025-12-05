@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, QrCode, MessageSquareText, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
-import type { Participant } from '@/types';
+import type { Participant, SessionMode } from '@/types';
 import CodeEditor from '@/components/editor/CodeEditor';
 import PreviewFrame from '@/components/editor/PreviewFrame';
 import ExampleSelector, { LocalExampleItem } from '@/components/editor/ExampleSelector';
@@ -335,6 +335,7 @@ export default function ParticipantPage() {
   const [shareUrl, setShareUrl] = useState('');
   const [isSharing, setIsSharing] = useState(false);
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+  const [sessionMode, setSessionMode] = useState<SessionMode>('html');
 
   // 쿨다운 상태
   const [validateCooldown, setValidateCooldown] = useState(0);
@@ -404,6 +405,18 @@ export default function ParticipantPage() {
       router.replace(`/login?session=${sessionId}`);
       return;
     }
+
+    // 세션 모드 가져오기
+    supabase
+      .from('td_sessions')
+      .select('mode')
+      .eq('id', sessionId)
+      .single()
+      .then(({ data }) => {
+        if (data?.mode) {
+          setSessionMode(data.mode as SessionMode);
+        }
+      });
 
     supabase
       .from('td_participants')
@@ -654,6 +667,30 @@ export default function ParticipantPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50">
         <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  // 워드클라우드 모드일 때는 간단한 UI만 표시
+  if (sessionMode === 'wordcloud') {
+    return (
+      <div className="flex min-h-screen flex-col bg-gradient-to-br from-cyan-50 to-blue-50">
+        {/* 헤더 */}
+        <header className="flex items-center justify-between border-b bg-white px-4 py-3 md:px-6 md:py-4">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold text-zinc-900 md:text-xl">{participant.nickname}</h1>
+            <span className="rounded-full bg-cyan-100 px-3 py-1 text-sm font-semibold text-cyan-800">
+              {participant.seat_position}
+            </span>
+          </div>
+        </header>
+
+        {/* 워드클라우드 입력 영역 */}
+        <main className="flex flex-1 items-center justify-center p-4 md:p-8">
+          <div className="w-full max-w-lg">
+            <ParticipantWordCloud sessionId={sessionId} participantId={participant.id} />
+          </div>
+        </main>
       </div>
     );
   }

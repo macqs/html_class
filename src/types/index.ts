@@ -10,6 +10,8 @@ export interface SeatLayoutPreset extends SeatLayout {
   capacity: number;
 }
 
+export type SessionMode = 'html' | 'wordcloud';
+
 export interface Session {
   id: string;
   title: string;
@@ -19,6 +21,7 @@ export interface Session {
   session_code?: string;
   template_id?: string;
   status: 'active' | 'ended';
+  mode: SessionMode;
   created_at: string;
 }
 
