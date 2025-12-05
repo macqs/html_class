@@ -78,7 +78,7 @@ export function LoginForm({ session, occupiedSeats: initialOccupiedSeats }: Logi
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
               placeholder="홍길동"
-              className="w-full rounded-lg border border-zinc-200 py-3 pl-10 pr-4 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-zinc-200 py-3 pl-10 pr-4 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </div>
         </div>
@@ -105,12 +105,12 @@ export function LoginForm({ session, occupiedSeats: initialOccupiedSeats }: Logi
                       key={seat}
                       disabled={isOccupied}
                       onClick={() => !isOccupied && setSelectedSeat(seat)}
-                      className={`rounded-lg border px-2 py-3 text-sm font-medium transition ${
+                      className={`rounded-lg border px-2 py-3 text-sm font-semibold transition ${
                         isSelected
                           ? 'border-blue-500 bg-blue-600 text-white'
                           : isOccupied
                             ? 'border-zinc-200 bg-zinc-200 text-zinc-500'
-                            : 'border-zinc-200 bg-white hover:border-blue-400'
+                            : 'border-zinc-200 bg-white text-zinc-900 hover:border-blue-400'
                       }`}
                     >
                       {seat}

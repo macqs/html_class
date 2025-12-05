@@ -108,26 +108,12 @@ export default function NewSessionPage() {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="예: HTML/CSS 기초 실습 2기"
-              className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               required
             />
           </section>
 
           <section className="grid gap-6 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-zinc-700" htmlFor="instructorId">
-                강사 ID
-              </label>
-              <input
-                id="instructorId"
-                type="text"
-                value={instructorId}
-                onChange={(event) => setInstructorId(event.target.value)}
-                placeholder="instructor-001"
-                className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                required
-              />
-            </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-zinc-700" htmlFor="date">
                 일정
@@ -139,10 +125,24 @@ export default function NewSessionPage() {
                   type="datetime-local"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="w-full rounded-2xl border border-zinc-200 px-4 py-3 pl-11 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-2xl border border-zinc-200 px-4 py-3 pl-11 text-base text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   required
                 />
               </div>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-zinc-700" htmlFor="instructorId">
+                강사 ID
+              </label>
+              <input
+                id="instructorId"
+                type="text"
+                value={instructorId}
+                onChange={(event) => setInstructorId(event.target.value)}
+                placeholder="instructor-001"
+                className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                required
+              />
             </div>
           </section>
 
@@ -162,7 +162,7 @@ export default function NewSessionPage() {
                   max={15}
                   value={rows}
                   onChange={(event) => setRows(Number(event.target.value))}
-                  className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   required
                 />
               </div>
@@ -177,7 +177,7 @@ export default function NewSessionPage() {
                   max={15}
                   value={cols}
                   onChange={(event) => setCols(Number(event.target.value))}
-                  className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   required
                 />
               </div>
@@ -209,7 +209,7 @@ export default function NewSessionPage() {
                     id="aislePosition"
                     value={aislePosition ?? Math.floor((cols - 1) / 2)}
                     onChange={(event) => setAislePosition(Number(event.target.value))}
-                    className="w-full rounded-xl border border-zinc-200 px-4 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full rounded-xl border border-zinc-200 px-4 py-2 text-base text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   >
                     {Array.from({ length: cols - 1 }, (_, i) => (
                       <option key={i} value={i}>
