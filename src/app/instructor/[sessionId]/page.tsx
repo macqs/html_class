@@ -10,7 +10,7 @@ import SeatMap from '@/components/dashboard/SeatMap';
 import CodePreviewPanel from '@/components/dashboard/CodePreviewPanel';
 import ParticipantModal from '@/components/dashboard/ParticipantModal';
 import { useInstructorRealtime } from '@/hooks/useInstructorRealtime';
-import { WordCloudPanel } from '@/components/wordcloud';
+import { WordCloudPanel, WordCloudFullPanel } from '@/components/wordcloud';
 
 interface ActivityLogEntry {
   id: string;
@@ -243,6 +243,53 @@ export default function InstructorDashboardPage() {
     workingCount: participants.filter((p) => p.status === 'working').length,
     helpCount: participants.filter((p) => p.status === 'help_needed').length,
   };
+
+  // 워드클라우드 모드일 때 전용 UI
+  if (session.mode === 'wordcloud') {
+    return (
+      <div className="flex min-h-screen flex-col bg-zinc-50">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between border-b bg-white px-4 py-3 md:px-6 md:py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-zinc-600">
+              <span className="font-semibold text-zinc-900">{participants.length}</span>명 접속
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {session.session_code && (
+              <div className="flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-1.5 text-sm font-semibold text-zinc-700">
+                <span className="font-mono text-base text-zinc-900">코드 {session.session_code}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(session.session_code ?? '')
+                      .then(() => alert('세션 코드가 클립보드에 복사되었습니다.'));
+                  }}
+                  className="rounded-full border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
+                >
+                  복사
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={endSession}
+              className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+            >
+              <Power size={16} />
+              종료
+            </button>
+          </div>
+        </div>
+
+        {/* 워드클라우드 전체 화면 */}
+        <div className="min-h-0 flex-1">
+          <WordCloudFullPanel sessionId={sessionId} participants={participants} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
