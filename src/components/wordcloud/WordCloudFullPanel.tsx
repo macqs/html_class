@@ -256,8 +256,8 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
           <div className="flex min-h-full items-center justify-center py-12">
             <WordCloudDisplay 
               words={words} 
-              minFontSize={100} 
-              maxFontSize={400}
+              minFontSize={50} 
+              maxFontSize={200}
               onWordClick={setSelectedWord}
             />
           </div>
