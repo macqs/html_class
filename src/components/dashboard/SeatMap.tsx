@@ -67,13 +67,17 @@ export default function SeatMap({ layout, participants, onSeatClick, onSeatDoubl
             }
           }}
           disabled={!clickable}
-          className={`relative min-h-[44px] rounded-lg py-2 text-xs font-semibold text-white transition md:py-5 md:text-sm ${getStatusColor(
+          className={`relative flex min-h-[44px] items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-white transition md:py-5 md:text-sm ${getStatusColor(
             participant?.status
           )} ${!clickable ? 'cursor-default opacity-80' : ''}`}
           title={participant ? `${participant.nickname} (${seat})` : seat}
         >
-          <div className="text-[10px] opacity-80 md:text-xs">{seat}</div>
-          {participant && <div className="mt-0.5 truncate px-0.5 text-[10px] md:mt-1 md:px-1 md:text-sm">{participant.nickname}</div>}
+          <span className="text-sm font-extrabold leading-none md:text-lg">{seat}</span>
+          {participant && (
+            <span className="flex-1 text-center text-sm font-semibold leading-tight opacity-95 md:text-base">
+              {participant.nickname}
+            </span>
+          )}
         </button>
       );
 
@@ -95,7 +99,7 @@ export default function SeatMap({ layout, participants, onSeatClick, onSeatDoubl
         className="mb-2 grid gap-1 md:mb-4 md:gap-2" 
         style={{ 
           gridTemplateColumns: hasAisle 
-            ? `repeat(${aisleColIndex}, minmax(0, 1fr)) 16px repeat(${layout.cols - aisleColIndex}, minmax(0, 1fr))`
+            ? `repeat(${aisleColIndex}, minmax(0, 1fr)) 36px repeat(${layout.cols - aisleColIndex}, minmax(0, 1fr))`
             : `repeat(${layout.cols}, minmax(0, 1fr))` 
         }}
       >

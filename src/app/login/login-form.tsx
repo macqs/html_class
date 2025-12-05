@@ -54,7 +54,12 @@ export function LoginForm({ session, occupiedSeats: initialOccupiedSeats }: Logi
     router.push(`/participant/${session.id}`);
   }
 
-  const seatLayout = normalizeSeatLayout(session.seat_layout as SeatLayout | null);
+  // 세션에 설정된 원본 레이아웃을 그대로 사용 (minCapacity=0)
+  const seatLayout = normalizeSeatLayout(session.seat_layout as SeatLayout | null, 0);
+
+  // 통로 포함 시 열 계산
+  const hasAisle = seatLayout.aisleAfterCol !== undefined && seatLayout.aisleAfterCol >= 0 && seatLayout.aisleAfterCol < seatLayout.cols - 1;
+  const aisleColIndex = hasAisle ? seatLayout.aisleAfterCol! + 1 : -1;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
@@ -81,29 +86,44 @@ export function LoginForm({ session, occupiedSeats: initialOccupiedSeats }: Logi
         <div className="mb-8">
           <label className="mb-4 block text-sm font-medium text-zinc-700">좌석 선택</label>
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${seatLayout.cols}, minmax(0, 1fr))` }}>
-              {seatLayout.labels.flat().map((seat: string) => {
-                const isOccupied = occupiedSeats.includes(seat);
-                const isSelected = seat === selectedSeat;
+            <div 
+              className="grid gap-2" 
+              style={{ 
+                gridTemplateColumns: hasAisle 
+                  ? `repeat(${aisleColIndex}, minmax(0, 1fr)) 16px repeat(${seatLayout.cols - aisleColIndex}, minmax(0, 1fr))`
+                  : `repeat(${seatLayout.cols}, minmax(0, 1fr))` 
+              }}
+            >
+              {seatLayout.labels.map((row, rowIndex) => (
+                row.map((seat, colIndex) => {
+                  const isOccupied = occupiedSeats.includes(seat);
+                  const isSelected = seat === selectedSeat;
 
-                return (
-                  <button
-                    type="button"
-                    key={seat}
-                    disabled={isOccupied}
-                    onClick={() => !isOccupied && setSelectedSeat(seat)}
-                    className={`rounded-lg border px-2 py-3 text-sm font-medium transition ${
-                      isSelected
-                        ? 'border-blue-500 bg-blue-600 text-white'
-                        : isOccupied
-                          ? 'border-zinc-200 bg-zinc-200 text-zinc-500'
-                          : 'border-zinc-200 bg-white hover:border-blue-400'
-                    }`}
-                  >
-                    {seat}
-                  </button>
-                );
-              })}
+                  const seatButton = (
+                    <button
+                      type="button"
+                      key={seat}
+                      disabled={isOccupied}
+                      onClick={() => !isOccupied && setSelectedSeat(seat)}
+                      className={`rounded-lg border px-2 py-3 text-sm font-medium transition ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-600 text-white'
+                          : isOccupied
+                            ? 'border-zinc-200 bg-zinc-200 text-zinc-500'
+                            : 'border-zinc-200 bg-white hover:border-blue-400'
+                      }`}
+                    >
+                      {seat}
+                    </button>
+                  );
+
+                  if (hasAisle && colIndex === seatLayout.aisleAfterCol) {
+                    return [seatButton, <div key={`aisle-${rowIndex}`} />];
+                  }
+
+                  return seatButton;
+                })
+              ))}
             </div>
             <div className="mt-4 flex gap-6 text-sm text-zinc-600">
               <Legend color="bg-white border border-zinc-300" label="사용 가능" />

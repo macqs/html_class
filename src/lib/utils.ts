@@ -7,12 +7,13 @@ export function cn(...inputs: ClassValue[]) {
 
 export function generateSeatLabels(rows: number, cols: number): string[][] {
   const labels: string[][] = [];
-  const rowLabels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  let currentNumber = 1;
 
   for (let r = 0; r < rows; r += 1) {
     const row: string[] = [];
     for (let c = 0; c < cols; c += 1) {
-      row.push(`${rowLabels[r]}-${c + 1}`);
+      row.push(String(currentNumber));
+      currentNumber += 1;
     }
     labels.push(row);
   }
