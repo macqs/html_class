@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import cloud from 'd3-cloud';
+import { scaleLinear } from 'd3-scale';
 import type { WordCount } from '@/types';
 
 interface WordCloudDisplayProps {
@@ -8,6 +10,12 @@ interface WordCloudDisplayProps {
   minFontSize?: number;
   maxFontSize?: number;
   onWordClick?: (word: string) => void;
+}
+
+interface CloudWord extends cloud.Word {
+  text: string;
+  value: number;
+  color: string;
 }
 
 const COLORS = [
@@ -23,37 +31,64 @@ const COLORS = [
 
 export function WordCloudDisplay({ 
   words, 
-  minFontSize = 14, 
-  maxFontSize = 64,
+  minFontSize = 20, 
+  maxFontSize = 100,
   onWordClick,
 }: WordCloudDisplayProps) {
-  const processedWords = useMemo(() => {
-    if (words.length === 0) return [];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [layoutWords, setLayoutWords] = useState<CloudWord[]>([]);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  // 화면 크기 감지
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight || 600,
+        });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  // 워드클라우드 레이아웃 계산
+  useEffect(() => {
+    if (words.length === 0 || dimensions.width === 0) return;
 
     const maxCount = Math.max(...words.map(w => w.value));
     const minCount = Math.min(...words.map(w => w.value));
-    const range = maxCount - minCount || 1;
+    
+    // 폰트 크기 스케일 함수
+    const fontSizeScale = scaleLinear()
+      .domain([minCount, maxCount])
+      .range([minFontSize, maxFontSize]);
 
-    return words.map((word, index) => {
-      const normalized = (word.value - minCount) / range;
-      const fontSize = minFontSize + normalized * (maxFontSize - minFontSize);
-      const color = COLORS[index % COLORS.length];
-      // 약간의 회전 (-10도 ~ +10도)
-      const rotation = Math.floor(Math.random() * 21) - 10;
+    const layout = cloud<CloudWord>()
+      .size([dimensions.width, dimensions.height])
+      .words(
+        words.map((w, i) => ({
+          text: w.text,
+          value: w.value,
+          size: fontSizeScale(w.value),
+          color: COLORS[i % COLORS.length],
+        }))
+      )
+      .padding(10) // 단어 간 간격
+      .rotate(() => (Math.floor(Math.random() * 2) * 90) - 0) // 0도 또는 90도 회전 (깔끔한 테트리스 느낌)
+      .font('Pretendard, system-ui, sans-serif')
+      .fontSize(d => d.size || 20)
+      .on('end', (computedWords) => {
+        setLayoutWords(computedWords);
+      });
 
-      return {
-        ...word,
-        fontSize,
-        color,
-        rotation,
-      };
-    });
-  }, [words, minFontSize, maxFontSize]);
-
-  // 단어를 랜덤하게 섞기
-  const shuffledWords = useMemo(() => {
-    return [...processedWords].sort(() => Math.random() - 0.5);
-  }, [processedWords]);
+    layout.start();
+  }, [words, dimensions, minFontSize, maxFontSize]);
 
   if (words.length === 0) {
     return (
@@ -64,23 +99,34 @@ export function WordCloudDisplay({
   }
 
   return (
-    <div className="flex min-h-[600px] flex-wrap items-center justify-center gap-6 p-8">
-      {shuffledWords.map((word, index) => (
-        <button
-          type="button"
-          key={`${word.text}-${index}`}
-          onClick={() => onWordClick?.(word.text)}
-          className="inline-block px-3 py-2 font-bold transition-all hover:scale-125 hover:brightness-110"
-          style={{
-            fontSize: `${word.fontSize}px`,
-            color: word.color,
-            transform: `rotate(${word.rotation}deg)`,
-          }}
-          title={`${word.text}: ${word.value}회 (클릭하여 상세 보기)`}
-        >
-          {word.text}
-        </button>
-      ))}
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden">
+      <div 
+        className="absolute left-1/2 top-1/2 transition-all duration-500 ease-out"
+        style={{ 
+          width: dimensions.width, 
+          height: dimensions.height,
+          transform: 'translate(-50%, -50%)'
+        }}
+      >
+        {layoutWords.map((word, i) => (
+          <button
+            key={`${word.text}-${i}`}
+            type="button"
+            onClick={() => onWordClick?.(word.text)}
+            className="absolute cursor-pointer whitespace-nowrap font-bold transition-all duration-300 hover:scale-110 hover:brightness-110 hover:drop-shadow-lg"
+            style={{
+              left: word.x! + dimensions.width / 2,
+              top: word.y! + dimensions.height / 2,
+              fontSize: `${word.size}px`,
+              color: word.color,
+              transform: `translate(-50%, -50%) rotate(${word.rotate}deg)`,
+            }}
+            title={`${word.text}: ${word.value}회 (클릭하여 상세 보기)`}
+          >
+            {word.text}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
