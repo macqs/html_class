@@ -7,6 +7,7 @@ interface WordCloudDisplayProps {
   words: WordCount[];
   minFontSize?: number;
   maxFontSize?: number;
+  onWordClick?: (word: string) => void;
 }
 
 const COLORS = [
@@ -23,7 +24,8 @@ const COLORS = [
 export function WordCloudDisplay({ 
   words, 
   minFontSize = 14, 
-  maxFontSize = 64 
+  maxFontSize = 64,
+  onWordClick,
 }: WordCloudDisplayProps) {
   const processedWords = useMemo(() => {
     if (words.length === 0) return [];
@@ -36,8 +38,8 @@ export function WordCloudDisplay({
       const normalized = (word.value - minCount) / range;
       const fontSize = minFontSize + normalized * (maxFontSize - minFontSize);
       const color = COLORS[index % COLORS.length];
-      // 약간의 회전 (-15도 ~ +15도)
-      const rotation = Math.floor(Math.random() * 31) - 15;
+      // 약간의 회전 (-10도 ~ +10도)
+      const rotation = Math.floor(Math.random() * 21) - 10;
 
       return {
         ...word,
@@ -55,27 +57,29 @@ export function WordCloudDisplay({
 
   if (words.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-zinc-400">
+      <div className="flex h-full items-center justify-center text-2xl text-zinc-400">
         아직 응답이 없습니다
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-[300px] flex-wrap items-center justify-center gap-3 p-4">
+    <div className="flex min-h-[600px] flex-wrap items-center justify-center gap-6 p-8">
       {shuffledWords.map((word, index) => (
-        <span
+        <button
+          type="button"
           key={`${word.text}-${index}`}
-          className="inline-block cursor-default px-2 py-1 font-bold transition-transform hover:scale-110"
+          onClick={() => onWordClick?.(word.text)}
+          className="inline-block px-3 py-2 font-bold transition-all hover:scale-125 hover:brightness-110"
           style={{
             fontSize: `${word.fontSize}px`,
             color: word.color,
             transform: `rotate(${word.rotation}deg)`,
           }}
-          title={`${word.text}: ${word.value}회`}
+          title={`${word.text}: ${word.value}회 (클릭하여 상세 보기)`}
         >
           {word.text}
-        </span>
+        </button>
       ))}
     </div>
   );

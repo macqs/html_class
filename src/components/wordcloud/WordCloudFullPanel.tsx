@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Cloud, Plus, Square, RefreshCw, Users } from 'lucide-react';
+import { Cloud, Plus, Square, RefreshCw, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { WordCloud, WordCount, Participant } from '@/types';
 import { WordCloudDisplay } from './WordCloudDisplay';
@@ -26,7 +26,7 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
   const [newQuestion, setNewQuestion] = useState('');
   const [maxWords, setMaxWords] = useState(3);
   const [isLoading, setIsLoading] = useState(true);
-  const [showResponses, setShowResponses] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
 
   // 참가자 ID로 좌석/닉네임 찾기
   const getParticipantInfo = useCallback((participantId: string) => {
@@ -220,6 +220,13 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
     );
   }
 
+  // 선택된 단어의 응답자 목록
+  const selectedWordResponses = selectedWord
+    ? responses
+        .filter((r) => r.word.toLowerCase().trim() === selectedWord.toLowerCase())
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    : [];
+
   // 활성 워드클라우드
   if (activeWordCloud) {
     return (
@@ -227,66 +234,74 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
         {/* 상단 헤더 */}
         <div className="flex items-center justify-between border-b bg-white px-6 py-4">
           <div>
-            <h2 className="flex items-center gap-2 text-xl font-bold text-zinc-900 md:text-2xl">
-              <Cloud className="text-cyan-600" size={28} />
+            <h2 className="flex items-center gap-2 text-2xl font-bold text-zinc-900 md:text-3xl">
+              <Cloud className="text-cyan-600" size={32} />
               {activeWordCloud.question}
             </h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              응답: {responses.length}개 · 참가자: {new Set(responses.map(r => r.participant_id)).size}명
+            <p className="mt-1 text-base text-zinc-500">
+              응답: {responses.length}개 · 참가자: {new Set(responses.map(r => r.participant_id)).size}명, 단어를 클릭하면 응답자를 확인할 수 있습니다
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowResponses(!showResponses)}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                showResponses 
-                  ? 'bg-cyan-100 text-cyan-700' 
-                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
-              }`}
-            >
-              <Users size={18} />
-              응답 목록
-            </button>
-            <button
-              onClick={handleEnd}
-              className="flex items-center gap-2 rounded-lg bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-200"
-            >
-              <Square size={16} />
-              종료
-            </button>
+          <button
+            onClick={handleEnd}
+            className="flex items-center gap-2 rounded-lg bg-rose-100 px-5 py-3 text-base font-semibold text-rose-600 transition hover:bg-rose-200"
+          >
+            <Square size={18} />
+            종료
+          </button>
+        </div>
+
+        {/* 워드클라우드 전체화면 */}
+        <div className="min-h-0 flex-1 overflow-auto bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
+          <div className="flex min-h-full items-center justify-center py-12">
+            <WordCloudDisplay 
+              words={words} 
+              minFontSize={100} 
+              maxFontSize={400}
+              onWordClick={setSelectedWord}
+            />
           </div>
         </div>
 
-        {/* 메인 콘텐츠 */}
-        <div className="flex min-h-0 flex-1">
-          {/* 워드클라우드 */}
-          <div className={`flex-1 overflow-auto bg-gradient-to-br from-cyan-50 to-blue-50 p-4 ${showResponses ? 'md:w-2/3' : 'w-full'}`}>
-            <div className="flex h-full items-center justify-center">
-              <WordCloudDisplay words={words} minFontSize={20} maxFontSize={80} />
-            </div>
-          </div>
-
-          {/* 응답 목록 사이드바 */}
-          {showResponses && (
-            <div className="w-full border-l bg-white md:w-1/3">
-              <div className="sticky top-0 border-b bg-zinc-50 px-4 py-3">
-                <h3 className="font-semibold text-zinc-900">응답 상세</h3>
+        {/* 단어 클릭 시 응답자 모달 */}
+        {selectedWord && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setSelectedWord(null)}
+          >
+            <div
+              className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b bg-cyan-50 px-6 py-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-cyan-900">&quot;{selectedWord}&quot;</h3>
+                  <p className="text-sm text-cyan-700">{selectedWordResponses.length}명이 응답</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedWord(null)}
+                  className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100"
+                >
+                  <X size={24} />
+                </button>
               </div>
-              <div className="max-h-[calc(100vh-200px)] overflow-auto">
-                {responses.length === 0 ? (
-                  <p className="p-4 text-center text-sm text-zinc-500">아직 응답이 없습니다</p>
+              <div className="max-h-[60vh] overflow-auto p-4">
+                {selectedWordResponses.length === 0 ? (
+                  <p className="py-8 text-center text-zinc-500">응답 정보가 없습니다</p>
                 ) : (
-                  <ul className="divide-y">
-                    {responses.map((r) => {
+                  <ul className="space-y-3">
+                    {selectedWordResponses.map((r, idx) => {
                       const info = getParticipantInfo(r.participant_id);
+                      const time = new Date(r.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                       return (
-                        <li key={r.id} className="flex items-center gap-3 px-4 py-3">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 text-sm font-bold text-cyan-700">
+                        <li key={r.id} className="flex items-center gap-4 rounded-xl bg-zinc-50 p-4">
+                          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-600 text-xl font-bold text-white">
                             {info.seat}
                           </span>
                           <div className="flex-1">
-                            <p className="font-semibold text-zinc-900">{r.word}</p>
-                            <p className="text-xs text-zinc-500">{info.nickname}</p>
+                            <p className="text-lg font-semibold text-zinc-900">{info.nickname}</p>
+                            <p className="text-sm text-zinc-500">{idx + 1}번째 응답 · {time}</p>
                           </div>
                         </li>
                       );
@@ -295,8 +310,8 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
                 )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
