@@ -433,6 +433,31 @@ export default function ParticipantPage() {
       });
   }, [loadLocalExamples, router, sessionId]);
 
+  // 세션 모드 실시간 구독 (별도 useEffect)
+  useEffect(() => {
+    const sessionChannel = supabase
+      .channel(`session-mode-participant-${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'td_sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        (payload) => {
+          if (payload.new && 'mode' in payload.new) {
+            setSessionMode(payload.new.mode as SessionMode);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(sessionChannel);
+    };
+  }, [sessionId]);
+
   function subscribeToParticipant(participantId: string) {
     const channel = supabase
       .channel(`participant-status:${participantId}`)
@@ -464,6 +489,7 @@ export default function ParticipantPage() {
     sessionId,
     participant?.id ?? '',
     participant?.seat_position ?? '',
+    { onModeChange: setSessionMode }
   );
 
   useEffect(() => {

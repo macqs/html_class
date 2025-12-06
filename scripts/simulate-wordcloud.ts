@@ -88,7 +88,46 @@ async function simulate(sessionId: string, wordcloudId: string) {
   console.log('\n✨ 시뮬레이션 완료! 총 응답 수:', responses.length);
 }
 
-// 워드클라우드 ID 자동 조회
+// 세션 ID 확인 또는 생성
+async function ensureSession(sessionId: string) {
+  const { data, error } = await supabase
+    .from('td_sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .single();
+
+  if (data) return sessionId;
+
+  console.log('ℹ️ 세션이 존재하지 않아 새로 생성합니다...');
+  
+  // 임의의 강사 ID 생성 (실제 환경에서는 auth.uid() 사용)
+  const instructorId = '00000000-0000-0000-0000-000000000000'; 
+  
+  const { data: newSession, error: createError } = await supabase
+    .from('td_sessions')
+    .insert({
+      id: sessionId,
+      title: '시뮬레이션 세션',
+      date: new Date().toISOString().split('T')[0],
+      instructor_id: instructorId,
+      seat_layout: { rows: 10, cols: 8, labels: [], aisleAfterCol: 3 },
+      session_code: 'SIMUL1',
+      status: 'active',
+      mode: 'wordcloud'
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    console.error('❌ 세션 생성 실패:', createError);
+    process.exit(1);
+  }
+
+  console.log('✅ 세션 생성 완료:', newSession.id);
+  return newSession.id;
+}
+
+// 워드클라우드 ID 자동 조회 또는 생성
 async function getActiveWordCloud(sessionId: string) {
   const { data, error } = await supabase
     .from('td_wordclouds')
@@ -97,20 +136,34 @@ async function getActiveWordCloud(sessionId: string) {
     .eq('is_active', true)
     .single();
   
-  if (error || !data) {
-    console.error('❌ 활성 워드클라우드를 찾을 수 없습니다.');
+  if (data) return data.id;
+
+  console.log('ℹ️ 활성 워드클라우드가 없어 새로 생성합니다...');
+  const { data: newData, error: createError } = await supabase
+    .from('td_wordclouds')
+    .insert({
+      session_id: sessionId,
+      question: '시뮬레이션 워드클라우드',
+      is_active: true
+    })
+    .select()
+    .single();
+
+  if (createError || !newData) {
+    console.error('❌ 워드클라우드 생성 실패:', createError);
     process.exit(1);
   }
-  return data.id;
+  
+  return newData.id;
 }
 
-const sessionId = process.argv[2];
+const sessionIdArg = process.argv[2];
 
-if (!sessionId) {
+if (!sessionIdArg) {
   console.error('사용법: npx ts-node scripts/simulate-wordcloud.ts <session_id>');
   process.exit(1);
 }
 
-getActiveWordCloud(sessionId).then(wordcloudId => {
-  simulate(sessionId, wordcloudId);
-});
+ensureSession(sessionIdArg)
+  .then(sessionId => getActiveWordCloud(sessionId))
+  .then(wordcloudId => simulate(sessionIdArg, wordcloudId));

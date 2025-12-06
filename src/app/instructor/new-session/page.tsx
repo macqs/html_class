@@ -21,7 +21,7 @@ export default function NewSessionPage() {
   const [cols, setCols] = useState(8);
   const [hasAisle, setHasAisle] = useState(false);
   const [aislePosition, setAislePosition] = useState<number | null>(null);
-  const [sessionMode, setSessionMode] = useState<SessionMode>('html');
+  const [sessionMode, setSessionMode] = useState<SessionMode>('wordcloud');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 

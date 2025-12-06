@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Cloud, Plus, Square, RefreshCw, X } from 'lucide-react';
+import { Cloud, Plus, Square, RefreshCw, X, Trophy, Clock, Medal } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { WordCloud, WordCount, Participant } from '@/types';
 import { WordCloudDisplay } from './WordCloudDisplay';
@@ -27,6 +27,7 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
   const [maxWords, setMaxWords] = useState(3);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [showWinners, setShowWinners] = useState(false);
 
   // 참가자 ID로 좌석/닉네임 찾기
   const getParticipantInfo = useCallback((participantId: string) => {
@@ -242,27 +243,127 @@ export function WordCloudFullPanel({ sessionId, participants }: WordCloudFullPan
               응답: {responses.length}개 · 참가자: {new Set(responses.map(r => r.participant_id)).size}명, 단어를 클릭하면 응답자를 확인할 수 있습니다
             </p>
           </div>
-          <button
-            onClick={handleEnd}
-            className="flex items-center gap-2 rounded-lg bg-rose-100 px-5 py-3 text-base font-semibold text-rose-600 transition hover:bg-rose-200"
-          >
-            <Square size={18} />
-            종료
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowWinners(true)}
+              disabled={responses.length === 0}
+              className="flex items-center gap-2 rounded-lg bg-amber-100 px-5 py-3 text-base font-semibold text-amber-700 transition hover:bg-amber-200 disabled:opacity-50"
+            >
+              <Trophy size={18} />
+              작성자 확인
+            </button>
+            <button
+              onClick={handleEnd}
+              className="flex items-center gap-2 rounded-lg bg-rose-100 px-5 py-3 text-base font-semibold text-rose-600 transition hover:bg-rose-200"
+            >
+              <Square size={18} />
+              종료
+            </button>
+          </div>
         </div>
 
         {/* 워드클라우드 전체화면 */}
-        <div className="min-h-[80vh] flex-1 overflow-hidden bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
+        <div className="relative flex min-h-[80vh] flex-1 flex-col overflow-hidden bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
           <WordCloudDisplay 
             words={words} 
             onWordClick={setSelectedWord}
           />
         </div>
 
+        {/* 작성자 확인 모달 */}
+        {showWinners && responses.length > 0 && (
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4"
+            onClick={() => setShowWinners(false)}
+          >
+            <div
+              className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b bg-gradient-to-r from-amber-50 to-orange-50 px-8 py-6">
+                <div className="flex items-center gap-3">
+                  <Trophy className="text-amber-500" size={32} />
+                  <div>
+                    <h3 className="text-2xl font-bold text-amber-900">참여 순서 확인</h3>
+                    <p className="text-amber-700">첫 번째와 마지막으로 참여한 작성자입니다</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowWinners(false)}
+                  className="rounded-full p-2 text-zinc-400 hover:bg-white/50 hover:text-zinc-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="flex flex-col gap-6 p-8 md:flex-row">
+                {/* 첫 번째 작성자 */}
+                <div className="flex-1 rounded-2xl border border-amber-100 bg-amber-50/50 p-6 text-center">
+                  <div className="mb-4 flex justify-center">
+                    <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 ring-4 ring-amber-50">
+                      <Clock size={32} className="text-amber-600" />
+                    </span>
+                  </div>
+                  <p className="mb-1 text-sm font-bold text-amber-600 uppercase tracking-wider">FIRST WRITER</p>
+                  <h4 className="mb-4 text-xl font-bold text-zinc-900">첫 번째 작성자</h4>
+                  
+                  {(() => {
+                    const firstResponse = responses[responses.length - 1];
+                    const info = getParticipantInfo(firstResponse.participant_id);
+                    const time = new Date(firstResponse.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+                    return (
+                      <div className="space-y-2 rounded-xl bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-500">좌석 {info.seat}</span>
+                          <span className="font-bold text-zinc-900">{info.nickname}</span>
+                        </div>
+                        <div className="text-2xl font-bold text-amber-600">
+                          &quot;{firstResponse.word}&quot;
+                        </div>
+                        <p className="text-xs text-zinc-400">{time}</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* 마지막 작성자 */}
+                <div className="flex-1 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-6 text-center">
+                  <div className="mb-4 flex justify-center">
+                    <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 ring-4 ring-indigo-50">
+                      <Medal size={32} className="text-indigo-600" />
+                    </span>
+                  </div>
+                  <p className="mb-1 text-sm font-bold text-indigo-600 uppercase tracking-wider">LAST WRITER</p>
+                  <h4 className="mb-4 text-xl font-bold text-zinc-900">마지막 작성자</h4>
+                  
+                  {(() => {
+                    const lastResponse = responses[0];
+                    const info = getParticipantInfo(lastResponse.participant_id);
+                    const time = new Date(lastResponse.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+                    return (
+                      <div className="space-y-2 rounded-xl bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-500">좌석 {info.seat}</span>
+                          <span className="font-bold text-zinc-900">{info.nickname}</span>
+                        </div>
+                        <div className="text-2xl font-bold text-indigo-600">
+                          &quot;{lastResponse.word}&quot;
+                        </div>
+                        <p className="text-xs text-zinc-400">{time}</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 단어 클릭 시 응답자 모달 */}
         {selectedWord && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
             onClick={() => setSelectedWord(null)}
           >
             <div

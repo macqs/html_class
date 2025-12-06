@@ -1,14 +1,29 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { broadcastEvent, createChannel, getParticipantGroup } from '@/lib/realtime';
 import type { LiveExampleItem } from '@/types';
 
-export function useParticipantRealtime(sessionId: string, participantId: string, seatPosition: string) {
+interface UseParticipantRealtimeOptions {
+  onModeChange?: (mode: 'html' | 'wordcloud') => void;
+}
+
+export function useParticipantRealtime(
+  sessionId: string,
+  participantId: string,
+  seatPosition: string,
+  options?: UseParticipantRealtimeOptions
+) {
   const [announcement, setAnnouncement] = useState('');
   const [sharedCode, setSharedCode] = useState('');
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const [liveExamples, setLiveExamples] = useState<LiveExampleItem[]>([]);
+
+  // 콜백을 ref로 저장하여 항상 최신 상태 유지
+  const onModeChangeRef = useRef(options?.onModeChange);
+  useEffect(() => {
+    onModeChangeRef.current = options?.onModeChange;
+  }, [options?.onModeChange]);
 
   const generateId = useMemo(
     () =>
@@ -33,13 +48,25 @@ export function useParticipantRealtime(sessionId: string, participantId: string,
       setTimeout(() => setAnnouncement(''), 5000);
     });
 
+    // 모드 변경 이벤트 수신
+    broadcastChannel.on('broadcast', { event: 'mode_change' }, (payload) => {
+      const mode = payload.payload.data?.mode as 'html' | 'wordcloud';
+      if (mode && onModeChangeRef.current) {
+        onModeChangeRef.current(mode);
+      }
+    });
+
     broadcastChannel.on('broadcast', { event: 'distribute_example' }, (payload) => {
       const code = payload.payload.data?.code as string;
       const title = payload.payload.data?.title as string;
       if (!code) return;
-      const ok = window.confirm(`강사님이 예제 코드를 배포했습니다: ${title}\n적용하시겠습니까?`);
-      if (ok) setSharedCode(code);
+
+      // 팝업 없이 목록에만 추가
+
       setLiveExamples((prev) => {
+        // 이미 같은 코드가 있으면 추가하지 않음
+        if (prev.some((e) => e.code === code)) return prev;
+
         const entry: LiveExampleItem = {
           id: generateId(),
           title: title ?? '강사 배포 예제',

@@ -11,7 +11,8 @@ export interface ChannelEvent {
     | 'distribute_example'
     | 'share_excellent_work'
     | 'participant_join'
-    | 'code_update';
+    | 'code_update'
+    | 'mode_change';
   participantId?: string;
   data?: unknown;
   timestamp?: string;
