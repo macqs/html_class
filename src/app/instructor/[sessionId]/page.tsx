@@ -11,7 +11,7 @@ import SeatMap from '@/components/dashboard/SeatMap';
 import CodePreviewPanel from '@/components/dashboard/CodePreviewPanel';
 import ParticipantModal from '@/components/dashboard/ParticipantModal';
 import { useInstructorRealtime } from '@/hooks/useInstructorRealtime';
-import { WordCloudPanel, WordCloudFullPanel } from '@/components/wordcloud';
+import { WordCloudFullPanel } from '@/components/wordcloud';
 
 interface ActivityLogEntry {
   id: string;
@@ -50,6 +50,7 @@ export default function InstructorDashboardPage() {
   useEffect(() => {
     const savedWifiName = localStorage.getItem('instructor_wifi_name') || '';
     const savedWifiPassword = localStorage.getItem('instructor_wifi_password') || '';
+    // eslint-disable-next-line
     setWifiName(savedWifiName);
     setWifiPassword(savedWifiPassword);
   }, []);
@@ -60,10 +61,6 @@ export default function InstructorDashboardPage() {
     localStorage.setItem('instructor_wifi_password', wifiPassword);
   };
 
-  useEffect(() => {
-    loadSession();
-  }, [sessionId]);
-
   async function loadSession() {
     const { data } = await supabase
       .from('td_sessions')
@@ -73,6 +70,11 @@ export default function InstructorDashboardPage() {
 
     if (data) setSession(data as Session);
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line
+    loadSession();
+  }, [sessionId]);
 
   // 세션 모드 실시간 구독
   useEffect(() => {
@@ -880,7 +882,7 @@ export default function InstructorDashboardPage() {
                 <X size={20} />
               </button>
             </div>
-            <WordCloudPanel sessionId={sessionId} />
+            <WordCloudFullPanel sessionId={sessionId} participants={participants} />
           </div>
         </div>
       )}

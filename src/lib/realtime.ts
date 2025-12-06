@@ -1,4 +1,4 @@
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 export type ChannelType = 'session' | 'instructor' | 'broadcast' | `group-${number}`;
@@ -42,7 +42,7 @@ export async function broadcastEvent(channel: RealtimeChannel, event: ChannelEve
 export function subscribeToTable(
   channel: RealtimeChannel,
   table: string,
-  callback: (payload: any) => void,
+  callback: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void,
 ) {
   channel.on('postgres_changes', { event: '*', schema: 'public', table }, callback).subscribe();
 }
@@ -50,13 +50,15 @@ export function subscribeToTable(
 export function subscribeAllGroups(
   sessionId: string,
   groupCount: number,
-  handler: (group: number, payload: any) => void,
+  handler: (group: number, payload: { payload: ChannelEvent }) => void,
 ) {
   const channels: RealtimeChannel[] = [];
 
   for (let i = 1; i <= groupCount; i += 1) {
     const channel = createChannel(sessionId, `group-${i}`);
-    channel.on('broadcast', { event: '*' }, (payload) => handler(i, payload));
+    channel.on('broadcast', { event: '*' }, (payload) =>
+      handler(i, payload as unknown as { payload: ChannelEvent }),
+    );
     channel.subscribe();
     channels.push(channel);
   }

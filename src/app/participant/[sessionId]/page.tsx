@@ -211,7 +211,7 @@ function PromptGuideModal({ onClose }: PromptGuideModalProps) {
               <li>디바이스 정보를 정확히 입력하면 반응형이 더 잘 맞음</li>
               <li>주제는 구체적으로 작성할수록 좋은 결과물이 나옴</li>
               <li>생성된 코드를 메모장에 붙여넣고 .html로 저장</li>
-              <li>문제가 있으면 "코드 검증" 버튼으로 수정 요청 가능</li>
+              <li>문제가 있으면 &quot;코드 검증&quot; 버튼으로 수정 요청 가능</li>
             </ul>
           </div>
         </div>
@@ -485,16 +485,12 @@ export default function ParticipantPage() {
     };
   }, []);
 
-  const { announcement, sharedCode, liveExamples, updateStatus, requestHelp } = useParticipantRealtime(
+  const { announcement, liveExamples, updateStatus, requestHelp } = useParticipantRealtime(
     sessionId,
     participant?.id ?? '',
     participant?.seat_position ?? '',
     { onModeChange: setSessionMode }
   );
-
-  useEffect(() => {
-    if (sharedCode) setCode(sharedCode);
-  }, [sharedCode]);
 
   const saveCode = useCallback(
     async (isFinal = false) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { WordCount } from '@/types';
 
 interface WordCloudDisplayProps {
@@ -180,6 +180,7 @@ export function WordCloudDisplay({ words, onWordClick }: WordCloudDisplayProps) 
       }
     });
 
+    // eslint-disable-next-line
     setPositionedWords(placedWords);
 
   }, [words, containerSize]);

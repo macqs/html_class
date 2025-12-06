@@ -20,10 +20,6 @@ export default function SessionManagerPage() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSessions();
-  }, []);
-
   async function loadSessions() {
     setIsLoading(true);
     setError('');
@@ -41,6 +37,11 @@ export default function SessionManagerPage() {
     setSessions((data as SessionWithLayout[]) ?? []);
     setIsLoading(false);
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line
+    loadSessions();
+  }, []);
 
   function copyParticipantLink(session: SessionWithLayout) {
     const baseUrl = window.location.origin;

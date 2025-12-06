@@ -18,9 +18,56 @@ export function useInstructorRealtime(sessionId: string) {
   const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
   const [broadcastChannel, setBroadcastChannel] = useState<RealtimeChannel | null>(null);
 
+  async function loadActivityLogs() {
+    const { data } = await supabase
+      .from('td_activity_logs')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (data) setActivityLogs(data as ActivityLogEntry[]);
+  }
+
+  async function loadHelpRequests(seedParticipants?: Participant[]) {
+    const baseParticipants = seedParticipants ?? participants;
+    if (!baseParticipants.length) {
+      setHelpRequests([]);
+      return;
+    }
+
+    const participantIds = baseParticipants.map((participant) => participant.id);
+
+    const { data, error } = await supabase
+      .from('td_help_requests')
+      .select('*')
+      .in('participant_id', participantIds)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('도움 요청을 불러오지 못했습니다.', error);
+      return;
+    }
+
+    if (data) setHelpRequests(data as HelpRequest[]);
+  }
+
+  async function loadParticipants() {
+    const { data } = await supabase
+      .from('td_participants')
+      .select('*')
+      .eq('session_id', sessionId);
+
+    if (data) {
+      const typed = data as Participant[];
+      setParticipants(typed);
+      await loadHelpRequests(typed);
+    }
+  }
+
   useEffect(() => {
     if (!sessionId) return;
 
+    // eslint-disable-next-line
     loadParticipants();
     loadHelpRequests();
     loadActivityLogs();
@@ -76,52 +123,6 @@ export function useInstructorRealtime(sessionId: string) {
       Notification.requestPermission().catch(() => null);
     }
   }, []);
-
-  async function loadHelpRequests(seedParticipants?: Participant[]) {
-    const baseParticipants = seedParticipants ?? participants;
-    if (!baseParticipants.length) {
-      setHelpRequests([]);
-      return;
-    }
-
-    const participantIds = baseParticipants.map((participant) => participant.id);
-
-    const { data, error } = await supabase
-      .from('td_help_requests')
-      .select('*')
-      .in('participant_id', participantIds)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('도움 요청을 불러오지 못했습니다.', error);
-      return;
-    }
-
-    if (data) setHelpRequests(data as HelpRequest[]);
-  }
-
-  async function loadParticipants() {
-    const { data } = await supabase
-      .from('td_participants')
-      .select('*')
-      .eq('session_id', sessionId);
-
-    if (data) {
-      const typed = data as Participant[];
-      setParticipants(typed);
-      await loadHelpRequests(typed);
-    }
-  }
-
-  async function loadActivityLogs() {
-    const { data } = await supabase
-      .from('td_activity_logs')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (data) setActivityLogs(data as ActivityLogEntry[]);
-  }
 
   async function logActivity(action_type: string, content: string) {
     await supabase.from('td_activity_logs').insert({ session_id: sessionId, action_type, content });

@@ -1,0 +1,70 @@
+
+> tmp_app@0.1.0 lint
+> eslint
+
+
+/Users/macqs/work_movie/scripts/load-test.mjs
+  523:18  warning  'supabase' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/macqs/work_movie/scripts/simulate-wordcloud.ts
+   93:17  warning  'error' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  132:17  warning  'error' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/macqs/work_movie/src/app/api/share-html/route.ts
+  21:11  warning  'timestamp' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/macqs/work_movie/src/app/api/validate-code/route.ts
+  58:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/macqs/work_movie/src/app/instructor/[sessionId]/page.tsx
+   16:11  warning  'ActivityLogEntry' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   53:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/macqs/work_movie/src/app/instructor/[sessionId]/page.tsx:53:5
+  51 |     const savedWifiName = localStorage.getItem('instructor_wifi_name') || '';
+  52 |     const savedWifiPassword = localStorage.getItem('instructor_wifi_password') || '';
+> 53 |     setWifiName(savedWifiName);
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  54 |     setWifiPassword(savedWifiPassword);
+  55 |   }, []);
+  56 |  react-hooks/set-state-in-effect
+   74:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/macqs/work_movie/src/app/instructor/[sessionId]/page.tsx:74:5
+  72 |
+  73 |   useEffect(() => {
+> 74 |     loadSession();
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  75 |   }, [sessionId]);
+  76 |
+  77 |   // 세션 모드 실시간 구독                                                                                                                                                                            react-hooks/set-state-in-effect
+   75:6   warning  React Hook useEffect has a missing dependency: 'loadSession'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+  417:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @next/next/no-img-element
+  915:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @next/next/no-img-element
+
+/Users/macqs/work_movie/src/app/participant/[sessionId]/page.tsx
+  249:14  warning  'error' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+  588:6   warning  React Hook useEffect has a missing dependency: 'participant'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  625:14  warning  'error' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+  671:14  warning  'error' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+
+/Users/macqs/work_movie/src/components/editor/CodeEditor.tsx
+  18:68  warning  'monaco' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/macqs/work_movie/src/hooks/useInstructorRealtime.ts
+  118:6  warning  React Hook useEffect has missing dependencies: 'loadActivityLogs', 'loadHelpRequests', and 'loadParticipants'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 17 problems (2 errors, 15 warnings)
+

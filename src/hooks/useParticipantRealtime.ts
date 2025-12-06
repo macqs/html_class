@@ -15,8 +15,8 @@ export function useParticipantRealtime(
   options?: UseParticipantRealtimeOptions
 ) {
   const [announcement, setAnnouncement] = useState('');
-  const [sharedCode, setSharedCode] = useState('');
-  const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+  // sharedCode 제거
+  const channelRef = useRef<RealtimeChannel | null>(null);
   const [liveExamples, setLiveExamples] = useState<LiveExampleItem[]>([]);
 
   // 콜백을 ref로 저장하여 항상 최신 상태 유지
@@ -99,13 +99,13 @@ export function useParticipantRealtime(
 
     broadcastChannel.subscribe();
     groupChannel.subscribe();
-    setChannel(groupChannel);
+    channelRef.current = groupChannel;
 
     return () => {
       broadcastChannel.unsubscribe();
       groupChannel.unsubscribe();
     };
-  }, [sessionId, participantId, seatPosition]);
+  }, [sessionId, participantId, seatPosition, generateId]);
 
   const updateStatus = async (status: 'idle' | 'working' | 'help_needed') => {
     if (!participantId) return;
@@ -123,8 +123,8 @@ export function useParticipantRealtime(
   };
 
   const emitCodeUpdate = async (code: string) => {
-    if (!channel) return;
-    await broadcastEvent(channel, {
+    if (!channelRef.current) return;
+    await broadcastEvent(channelRef.current, {
       type: 'code_update',
       participantId,
       data: { code },
@@ -133,7 +133,7 @@ export function useParticipantRealtime(
 
   return {
     announcement,
-    sharedCode,
+    // sharedCode 제거
     liveExamples,
     updateStatus,
     requestHelp,

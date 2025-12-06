@@ -15,6 +15,7 @@ export default function CodePreviewPanel({ participant }: CodePreviewPanelProps)
 
   useEffect(() => {
     if (!participant) {
+      // eslint-disable-next-line
       setCode('');
       return;
     }
