@@ -36,7 +36,7 @@ export default function ExampleSelector({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex h-11 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 md:h-auto md:gap-2 md:px-4 md:py-2"
+        className="flex h-9 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors"
       >
         <BookOpen size={16} />
         <span>예제</span>

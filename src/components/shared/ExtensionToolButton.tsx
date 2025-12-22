@@ -14,17 +14,16 @@ export default function ExtensionToolButton({ className = '', simple = false }: 
     window.open(downloadUrl, '_blank');
   };
 
-  if (simple) {
+    if (simple) {
     return (
       <button
         type="button"
         onClick={handleClick}
         title="윈도우 10/11 확장자 변경 도구 (.txt → .html). .reg 실행 권장, 실패 시 .bat 사용"
-        className={`flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 md:h-auto md:gap-2 md:py-2 ${className}`}
+        className={`flex h-9 items-center gap-1.5 rounded-md border border-purple-200 bg-purple-50 px-3 text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors whitespace-nowrap ${className}`}
       >
         <Download size={16} />
         <span className="hidden sm:inline">확장자 도구</span>
-        <span className="sm:hidden">도구</span>
       </button>
     );
   }

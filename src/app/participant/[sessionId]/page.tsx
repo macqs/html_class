@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useParams, useRouter } from 'next/navigation';
-import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, QrCode, MessageSquareText, X } from 'lucide-react';
+import { HelpCircle, Loader2, Save, CheckCircle, Sparkles, Copy, QrCode, MessageSquareText, X, MousePointerClick, Download } from 'lucide-react';
+import { ChatGPTIcon, ClaudeIcon, GeminiIcon } from '@/components/icons/AIIcons';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
 import type { Participant, SessionMode } from '@/types';
@@ -14,16 +15,7 @@ import ExtensionToolButton from '@/components/shared/ExtensionToolButton';
 import { useParticipantRealtime } from '@/hooks/useParticipantRealtime';
 import { ParticipantWordCloud } from '@/components/wordcloud';
 
-const DEFAULT_HTML = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <title>내 작품</title>
-</head>
-<body>
-  <h1>여기에 코드를 작성하세요</h1>
-</body>
-</html>`;
+const DEFAULT_HTML = ``;
 
 interface ValidationFeedback {
   summary: string;
@@ -37,6 +29,31 @@ interface ValidationModalProps {
   feedback: ValidationFeedback;
   onClose: () => void;
   onApply: () => void;
+}
+
+interface GuideOverlayProps {
+  message: string;
+  subMessage?: string;
+  onDismiss: () => void;
+}
+
+function GuideOverlay({ message, subMessage, onDismiss }: GuideOverlayProps) {
+  return (
+    <div 
+      className="absolute inset-0 z-40 flex cursor-pointer flex-col items-center justify-center bg-black/70 p-6 text-center text-white backdrop-blur-sm transition-opacity hover:bg-black/60"
+      onClick={(e) => {
+        e.stopPropagation();
+        onDismiss();
+      }}
+    >
+      <div className="mb-4 rounded-full bg-white/20 p-4">
+        <MousePointerClick size={32} className="animate-pulse text-white" />
+      </div>
+      <h3 className="mb-2 text-xl font-bold md:text-2xl">{message}</h3>
+      {subMessage && <p className="text-sm text-zinc-200 md:text-base">{subMessage}</p>}
+      <p className="mt-8 text-xs font-medium text-zinc-400">화면을 클릭하면 시작합니다</p>
+    </div>
+  );
 }
 
 interface QRModalProps {
@@ -346,6 +363,31 @@ export default function ParticipantPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [isMdScreen, setIsMdScreen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+
+  // 가이드 오버레이 상태
+  const [showEditorGuide, setShowEditorGuide] = useState(false);
+  const [showPreviewGuide, setShowPreviewGuide] = useState(false);
+
+  // 가이드 표시 여부 확인 (최초 접속 시)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const editorSeen = localStorage.getItem('guide_editor_seen');
+    const previewSeen = localStorage.getItem('guide_preview_seen');
+
+    if (!editorSeen) setShowEditorGuide(true);
+    if (!previewSeen) setShowPreviewGuide(true);
+  }, []);
+
+  const dismissEditorGuide = () => {
+    localStorage.setItem('guide_editor_seen', 'true');
+    setShowEditorGuide(false);
+  };
+
+  const dismissPreviewGuide = () => {
+    localStorage.setItem('guide_preview_seen', 'true');
+    setShowPreviewGuide(false);
+  };
 
   // 화면 크기 감지 (md breakpoint = 768px)
   useEffect(() => {
@@ -696,9 +738,9 @@ export default function ParticipantPage() {
   // 워드클라우드 모드일 때는 간단한 UI만 표시
   if (sessionMode === 'wordcloud') {
     return (
-      <div className="flex min-h-screen flex-col bg-gradient-to-br from-cyan-50 to-blue-50">
+      <div className="flex h-screen flex-col bg-gradient-to-br from-cyan-50 to-blue-50 overflow-hidden">
         {/* 헤더 */}
-        <header className="flex items-center justify-between border-b bg-white px-4 py-3 md:px-6 md:py-4">
+        <header className="flex-none flex items-center justify-between border-b bg-white px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold text-zinc-900 md:text-xl">{participant.nickname}</h1>
             <span className="rounded-full bg-cyan-100 px-3 py-1 text-sm font-semibold text-cyan-800">
@@ -708,7 +750,7 @@ export default function ParticipantPage() {
         </header>
 
         {/* 워드클라우드 입력 영역 */}
-        <main className="flex flex-1 items-center justify-center p-4 md:p-8">
+        <main className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-0 overflow-y-auto">
           <div className="w-full max-w-lg">
             <ParticipantWordCloud sessionId={sessionId} participantId={participant.id} />
           </div>
@@ -718,67 +760,148 @@ export default function ParticipantPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50">
-      {/* 헤더 - 태블릿 반응형 */}
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-white px-3 py-2 md:px-6 md:py-4">
-        {/* 사용자 정보 */}
-        <div className="flex items-center gap-2 md:gap-4">
-          <h1 className="text-base font-bold text-zinc-900 md:text-xl">{participant.nickname}</h1>
-          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800 md:px-3 md:py-1 md:text-sm">
+    <div className="flex h-screen flex-col bg-zinc-50 overflow-hidden">
+      {/* 통합 헤더 (한 줄 레이아웃) */}
+      <header className="flex-none flex items-center justify-between bg-white border-b shadow-sm z-10 h-14 md:h-16">
+        {/* 좌측: 사용자 정보 (고정) */}
+        <div className="flex-none flex items-center gap-2 pl-3 md:pl-6 pr-2 bg-white z-10">
+          <h1 className="text-base font-bold text-zinc-900 truncate max-w-[80px] md:max-w-[120px]">
+            {participant.nickname}
+          </h1>
+          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800 shrink-0">
             {participant.seat_position}
           </span>
         </div>
 
-        {/* AI 링크 - 태블릿에서 아이콘만 */}
-        <div className="flex items-center gap-1 md:gap-2">
-          <a
-            href="https://chatgpt.com"
-            target="_blank"
-            rel="noreferrer noopener"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 md:h-auto md:w-auto md:gap-1.5 md:px-3 md:py-1"
-            title="ChatGPT"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">GPT</span>
-            <span className="hidden text-xs font-semibold md:inline">ChatGPT</span>
-          </a>
-          <a
-            href="https://claude.ai"
-            target="_blank"
-            rel="noreferrer noopener"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-purple-200 bg-purple-50 text-purple-800 hover:bg-purple-100 md:h-auto md:w-auto md:gap-1.5 md:px-3 md:py-1"
-            title="Claude"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">CL</span>
-            <span className="hidden text-xs font-semibold md:inline">Claude</span>
-          </a>
-          <a
-            href="https://gemini.google.com/"
-            target="_blank"
-            rel="noreferrer noopener"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 md:h-auto md:w-auto md:gap-1.5 md:px-3 md:py-1"
-            title="Gemini"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-[10px] font-bold text-white">GE</span>
-            <span className="hidden text-xs font-semibold md:inline">Gemini</span>
-          </a>
-        </div>
+        {/* 우측: 스크롤 가능한 툴바 영역 */}
+        <div className="flex-1 flex items-center justify-end gap-3 overflow-x-auto no-scrollbar px-2 pr-3 md:pr-6 h-full mask-linear-fade">
+          
+          {/* Group 1: 참조 리소스 (AI & 가이드) */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* AI 링크 - 아이콘 위주로 컴팩트하게 */}
+            <div className="flex items-center gap-1">
+              <a
+                href="https://chatgpt.com"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                title="ChatGPT"
+              >
+                <ChatGPTIcon className="w-5 h-5" />
+              </a>
+              <a
+                href="https://claude.ai"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+                title="Claude"
+              >
+                <ClaudeIcon className="w-5 h-5" />
+              </a>
+              <a
+                href="https://gemini.google.com/"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 transition-colors"
+                title="Gemini"
+              >
+                <GeminiIcon className="w-5 h-5" />
+              </a>
+            </div>
 
-        {/* 저장 상태 - 태블릿에서 숨김 */}
-        <div className="hidden text-right text-sm text-zinc-600 lg:block">
-          {lastSaved ? `마지막 저장: ${Math.floor((Date.now() - lastSaved.getTime()) / 60000)}분 전` : '자동 저장 대기 중'}
-          {isSaving && <span className="ml-2 text-blue-600">저장 중...</span>}
+            {/* 학습 보조 */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsPromptModalOpen(true)}
+                className="flex h-9 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors whitespace-nowrap"
+              >
+                <MessageSquareText size={15} />
+                <span className="hidden xl:inline">프롬프트</span>
+              </button>
+              <div className="h-9">
+                <ExampleSelector
+                  onSelect={setCode}
+                  liveExamples={liveExamples}
+                  localExamples={localExamples}
+                  onRemoveLocalExample={handleRemoveLocalExample}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-5 w-px bg-zinc-200 shrink-0"></div>
+
+          {/* Group 2: 에디터 액션 (확장/검증/도움) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <ExtensionToolButton simple />
+            
+            <button
+              type="button"
+              onClick={validateCode}
+              disabled={isValidating || validateCooldown > 0}
+              className="flex h-9 items-center gap-1.5 rounded-md bg-purple-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            >
+              {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle size={16} />}
+              <span className="hidden sm:inline">{validateCooldown > 0 ? `${validateCooldown}s` : '검증'}</span>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => handleRequestHelp()}
+              disabled={helpCooldown > 0}
+              className="flex h-9 items-center gap-1.5 rounded-md border border-orange-200 bg-orange-50 px-3 text-sm font-medium text-orange-700 hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            >
+              <HelpCircle size={16} />
+              <span className="hidden sm:inline">{helpCooldown > 0 ? `${helpCooldown}s` : '도움'}</span>
+            </button>
+          </div>
+
+          <div className="h-5 w-px bg-zinc-200 shrink-0"></div>
+
+          {/* Group 3: 파일 및 공유 (저장/다운/QR) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => saveCode(true)}
+              className="flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 transition-colors whitespace-nowrap"
+            >
+              <Save size={16} />
+              <span>저장</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={downloadCode}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors whitespace-nowrap"
+              title="HTML 다운로드"
+            >
+              <Download size={16} />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShareQR}
+              disabled={isSharing}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-50 transition-colors whitespace-nowrap"
+              title="QR 코드로 공유"
+            >
+              {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode size={16} />}
+            </button>
+          </div>
         </div>
       </header>
 
       {/* 워드클라우드 (활성화 시 표시) */}
-      <div className="px-2 pt-2 md:px-4 md:pt-4">
+      {/* 워드클라우드는 모달이나 별도 영역으로 띄우는 것이 좋을 수 있으나 기존 위치 유지 */}
+      <div className="px-2 pt-2 md:px-4 md:pt-4 empty:hidden">
         <ParticipantWordCloud sessionId={sessionId} participantId={participant.id} />
       </div>
 
       {/* 메인 영역 - 리사이저 포함 */}
       <main
         ref={mainRef}
-        className={`flex min-h-0 flex-1 flex-col gap-2 p-2 md:flex-row md:gap-0 md:p-4 ${isResizing ? 'cursor-col-resize select-none' : ''}`}
+        className={`flex-1 flex flex-col md:flex-row min-h-0 gap-2 p-2 md:gap-0 md:p-4 ${isResizing ? 'cursor-col-resize select-none' : ''}`}
         onMouseMove={(e) => {
           if (!isResizing || !mainRef.current) return;
           e.preventDefault();
@@ -798,9 +921,16 @@ export default function ParticipantPage() {
       >
         {/* 코드 에디터 */}
         <section
-          className="flex h-[40vh] flex-col md:h-auto"
+          className="relative flex h-1/2 flex-col md:h-full min-h-0"
           style={isMdScreen ? { width: `${editorRatio}%` } : undefined}
         >
+          {showEditorGuide && (
+            <GuideOverlay
+              message="이 영역은 윈도우 PC의 메모장과 같습니다"
+              subMessage="여기에 코드를 붙여넣고 .html 확장자로 변경하면 웹페이지가 됩니다."
+              onDismiss={dismissEditorGuide}
+            />
+          )}
           <CodeEditor code={code} onChange={(value) => setCode(value ?? '')} />
         </section>
 
@@ -814,84 +944,21 @@ export default function ParticipantPage() {
           <div className={`h-16 w-1.5 rounded-full transition-colors ${isResizing ? 'bg-blue-500' : 'bg-zinc-300 hover:bg-zinc-400'}`} />
         </div>
 
+      {/* 모바일 세로 모드용 구분선 */}
+        <div className="md:hidden h-2 w-full shrink-0"></div>
+
         {/* 미리보기 */}
-        <section className="flex min-h-[35vh] flex-1 flex-col">
+        <section className="relative flex h-1/2 flex-1 flex-col md:h-full min-h-0">
+          {showPreviewGuide && (
+            <GuideOverlay
+              message="이 영역은 인터넷 브라우저와 같습니다"
+              subMessage="Chrome, Edge, Safari처럼 작성한 코드를 즉시 확인할 수 있습니다."
+              onDismiss={dismissPreviewGuide}
+            />
+          )}
           <PreviewFrame code={code} />
         </section>
       </main>
-
-      {/* 하단 툴바 - 태블릿 반응형 (44px 최소 터치 영역) */}
-      <div className="flex flex-col gap-2 border-t bg-white px-2 py-2 md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-4">
-        {/* 상단 버튼 그룹 */}
-        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-          <button
-            type="button"
-            onClick={() => setIsPromptModalOpen(true)}
-            className="flex h-11 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-sm font-semibold text-amber-800 shadow-sm hover:bg-amber-100 md:h-auto md:gap-2 md:px-4 md:py-2"
-          >
-            <MessageSquareText size={16} />
-            <span className="hidden xs:inline">추천</span> 프롬프트
-          </button>
-          <ExampleSelector
-            onSelect={setCode}
-            liveExamples={liveExamples}
-            localExamples={localExamples}
-            onRemoveLocalExample={handleRemoveLocalExample}
-          />
-        </div>
-
-        {/* 하단 버튼 그룹 - 태블릿에서 줄바꿈 */}
-        <div className="flex flex-wrap gap-1.5 md:gap-2">
-          <ExtensionToolButton simple />
-          <button
-            type="button"
-            onClick={validateCode}
-            disabled={isValidating || validateCooldown > 0}
-            className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 text-sm font-semibold text-white shadow hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60 md:h-auto md:gap-2 md:px-4 md:py-2"
-          >
-            {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle size={16} />}
-            <span className="hidden sm:inline">{validateCooldown > 0 ? `검증 (${validateCooldown}s)` : '코드 검증'}</span>
-            <span className="sm:hidden">{validateCooldown > 0 ? `${validateCooldown}s` : '검증'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleRequestHelp()}
-            disabled={helpCooldown > 0}
-            className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white shadow hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-auto md:gap-2 md:px-4 md:py-2"
-          >
-            <HelpCircle size={16} />
-            <span className="hidden sm:inline">{helpCooldown > 0 ? `도움 (${helpCooldown}s)` : '도움 요청'}</span>
-            <span className="sm:hidden">{helpCooldown > 0 ? `${helpCooldown}s` : '도움'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => saveCode(true)}
-            className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white shadow hover:bg-emerald-700 md:h-auto md:gap-2 md:px-4 md:py-2"
-          >
-            <Save size={16} />
-            <span className="hidden sm:inline">내 작품 저장</span>
-            <span className="sm:hidden">저장</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleShareQR}
-            disabled={isSharing}
-            className="flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-60 md:h-auto md:gap-2 md:px-4 md:py-2"
-          >
-            {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode size={16} />}
-            <span className="hidden sm:inline">QR 공유</span>
-            <span className="sm:hidden">QR</span>
-          </button>
-          <button
-            type="button"
-            onClick={downloadCode}
-            className="flex h-11 min-w-[44px] items-center justify-center rounded-lg border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 shadow hover:bg-zinc-50 md:h-auto md:px-3 md:py-2"
-          >
-            <span className="hidden sm:inline">다운로드</span>
-            <span className="sm:hidden">↓</span>
-          </button>
-        </div>
-      </div>
 
       {announcement && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
@@ -918,7 +985,6 @@ export default function ParticipantPage() {
       {isPromptModalOpen && (
         <PromptGuideModal onClose={() => setIsPromptModalOpen(false)} />
       )}
-
     </div>
   );
 }
