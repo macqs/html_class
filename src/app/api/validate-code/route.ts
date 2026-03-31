@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { checkRateLimit, getRateLimitKey } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getRateLimitKey(req);
+    const { allowed } = checkRateLimit(`validate:${ip}`, 30, 60_000);
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, validation: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 }
+      );
+    }
+
     const { code, participantId } = await req.json();
 
     if (!code || !participantId) {

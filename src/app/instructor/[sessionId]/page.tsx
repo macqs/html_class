@@ -12,6 +12,7 @@ import CodePreviewPanel from '@/components/dashboard/CodePreviewPanel';
 import ParticipantModal from '@/components/dashboard/ParticipantModal';
 import { useInstructorRealtime } from '@/hooks/useInstructorRealtime';
 import { WordCloudFullPanel } from '@/components/wordcloud';
+import { useToast } from '@/components/shared/Toast';
 
 interface ActivityLogEntry {
   id: string;
@@ -45,6 +46,7 @@ export default function InstructorDashboardPage() {
   const [previewExampleCode, setPreviewExampleCode] = useState<string | null>(null);
   const [wifiName, setWifiName] = useState('');
   const [wifiPassword, setWifiPassword] = useState('');
+  const { toast } = useToast();
 
   // 와이파이 정보 로컬스토리지에서 로드
   useEffect(() => {
@@ -121,7 +123,7 @@ export default function InstructorDashboardPage() {
       .eq('id', sessionId);
 
     if (error) {
-      alert('모드 전환에 실패했습니다.');
+      toast('모드 전환에 실패했습니다.', 'error');
       return;
     }
 
@@ -152,7 +154,7 @@ export default function InstructorDashboardPage() {
     const message = prompt('전체 공지를 입력하세요.');
     if (!message) return;
     await sendAnnouncement(message);
-    alert('공지가 전송되었습니다!');
+    toast('공지가 전송되었습니다!', 'success');
   }
 
   async function openExamplePicker() {
@@ -176,7 +178,7 @@ export default function InstructorDashboardPage() {
 
   async function handleSelectExample(example: ExampleCode) {
     await distributeExample(example.title, example.code);
-    alert('예제가 배포되었습니다!');
+    toast('예제가 배포되었습니다!', 'success');
     closeExamplePicker();
   }
 
@@ -194,7 +196,7 @@ export default function InstructorDashboardPage() {
 
   async function handleSendSelectedExamples() {
     if (selectedExampleIds.size === 0) {
-      alert('배포할 예제를 선택해주세요.');
+      toast('배포할 예제를 선택해주세요.', 'info');
       return;
     }
     setIsSendingMultiple(true);
@@ -203,25 +205,25 @@ export default function InstructorDashboardPage() {
       await distributeExample(example.title, example.code);
     }
     setIsSendingMultiple(false);
-    alert(`${selectedExamples.length}개 예제가 배포되었습니다!`);
+    toast(`${selectedExamples.length}개 예제가 배포되었습니다!`, 'success');
     closeExamplePicker();
   }
 
   async function handleSendCustomCode() {
     const code = customCode.trim();
     if (!code) {
-      alert('배포할 코드를 입력해주세요.');
+      toast('배포할 코드를 입력해주세요.', 'info');
       return;
     }
     const title = customCodeTitle.trim() || '즉흥 코드';
     await distributeExample(title, code);
-    alert('코드가 배포되었습니다!');
+    toast('코드가 배포되었습니다!', 'success');
     closeExamplePicker();
   }
 
   function openShareModal() {
     if (!participants.length) {
-      alert('참가자가 없습니다.');
+      toast('참가자가 없습니다.', 'info');
       return;
     }
     setIsShareModalOpen(true);
@@ -256,12 +258,12 @@ export default function InstructorDashboardPage() {
     setSharingParticipantId(null);
 
     if (!data) {
-      alert('공유할 코드가 없습니다. 최근 작업을 저장하도록 안내해주세요.');
+      toast('공유할 코드가 없습니다. 최근 작업을 저장하도록 안내해주세요.', 'error');
       return;
     }
 
     await shareExcellentWork(participant.id, data.code);
-    alert(`${participant.nickname}님의 코드를 공유했습니다!`);
+    toast(`${participant.nickname}님의 코드를 공유했습니다!`, 'success');
     closeShareModal();
   }
 
@@ -273,7 +275,7 @@ export default function InstructorDashboardPage() {
       .update({ status: 'ended' })
       .eq('id', sessionId);
 
-    alert('세션이 종료되었습니다.');
+    toast('세션이 종료되었습니다.', 'success');
   }
 
   async function resolveHelpRequestForParticipant(participantId: string) {
@@ -305,7 +307,7 @@ export default function InstructorDashboardPage() {
       if (data?.code) {
         setCodeSnapshot(data.code);
       } else {
-        alert('요청 당시 코드를 찾을 수 없습니다. 참가자에게 최신 코드를 저장하도록 안내해주세요.');
+        toast('요청 당시 코드를 찾을 수 없습니다.', 'error');
       }
     }
 
@@ -357,7 +359,7 @@ export default function InstructorDashboardPage() {
                   onClick={() => {
                     navigator.clipboard
                       .writeText(session.session_code ?? '')
-                      .then(() => alert('세션 코드가 클립보드에 복사되었습니다.'));
+                      .then(() => toast('세션 코드가 복사되었습니다.', 'success'));
                   }}
                   className="rounded-full border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
                 >
@@ -540,8 +542,8 @@ export default function InstructorDashboardPage() {
                   onClick={() => {
                     navigator.clipboard
                       .writeText(session.session_code ?? '')
-                      .then(() => alert('세션 코드가 클립보드에 복사되었습니다.'))
-                      .catch(() => alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
+                      .then(() => toast('세션 코드가 복사되었습니다.', 'success'))
+                      .catch(() => toast('복사에 실패했습니다.', 'error'));
                   }}
                   className="rounded-full border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
                 >

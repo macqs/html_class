@@ -13,6 +13,7 @@ import PreviewFrame from '@/components/editor/PreviewFrame';
 import ExampleSelector, { LocalExampleItem } from '@/components/editor/ExampleSelector';
 import ExtensionToolButton from '@/components/shared/ExtensionToolButton';
 import { useParticipantRealtime } from '@/hooks/useParticipantRealtime';
+import { useToast } from '@/components/shared/Toast';
 import { ParticipantWordCloud } from '@/components/wordcloud';
 
 const DEFAULT_HTML = ``;
@@ -363,6 +364,7 @@ export default function ParticipantPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [isMdScreen, setIsMdScreen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  const { toast } = useToast();
 
   // 가이드 오버레이 상태
   const [showEditorGuide, setShowEditorGuide] = useState(false);
@@ -544,7 +546,7 @@ export default function ParticipantPage() {
       
       if (codeSize > 2097152) { // 2MB 하드 제한
         if (isFinal) {
-          alert(`코드가 너무 큽니다 (${sizeMB}MB / 2MB). 이미지는 외부 링크를 사용하거나 크기를 줄여주세요.`);
+          toast(`코드가 너무 큽니다 (${sizeMB}MB / 2MB). 외부 링크를 사용해주세요.`, 'error');
         }
         return;
       }
@@ -570,7 +572,7 @@ export default function ParticipantPage() {
         if (error) {
           console.error('Code save error:', error);
           if (isFinal) {
-            alert('저장에 실패했습니다. 네트워크 연결을 확인하고 다시 시도해주세요.');
+            toast('저장에 실패했습니다. 네트워크를 확인해주세요.', 'error');
           }
           return;
         }
@@ -590,7 +592,7 @@ export default function ParticipantPage() {
       } catch (error) {
         console.error('Save exception:', error);
         if (isFinal) {
-          alert('저장 중 오류가 발생했습니다.');
+          toast('저장 중 오류가 발생했습니다.', 'error');
         }
       } finally {
         setIsSaving(false);
@@ -608,14 +610,18 @@ export default function ParticipantPage() {
     [localExamples, participant, persistLocalExamples],
   );
 
+  const lastSavedCodeRef = useRef(code);
+
   useEffect(() => {
     if (!participant) return;
+    if (code === lastSavedCodeRef.current) return;
 
-    const interval = setInterval(() => {
+    const timeout = setTimeout(() => {
+      lastSavedCodeRef.current = code;
       saveCode();
-    }, 5000); // 5초 간격 (DB 부하 방지)
+    }, 3000);
 
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeout);
   }, [participant, code, saveCode]);
 
   useEffect(() => {
@@ -644,7 +650,7 @@ export default function ParticipantPage() {
   async function validateCode() {
     if (!participant) return;
     if (validateCooldown > 0) {
-      alert(`코드 검증은 ${validateCooldown}초 후에 다시 사용할 수 있습니다.`);
+      toast(`코드 검증은 ${validateCooldown}초 후에 다시 사용할 수 있습니다.`, 'info');
       return;
     }
 
@@ -677,7 +683,7 @@ export default function ParticipantPage() {
   async function handleRequestHelp() {
     if (!participant) return;
     if (helpCooldown > 0) {
-      alert(`도움 요청은 ${helpCooldown}초 후에 다시 할 수 있습니다.`);
+      toast(`도움 요청은 ${helpCooldown}초 후에 다시 할 수 있습니다.`, 'info');
       return;
     }
     
@@ -685,10 +691,10 @@ export default function ParticipantPage() {
       await requestHelp('도움이 필요합니다.', code);
       setParticipant((prev) => (prev ? { ...prev, status: 'help_needed' } : prev));
       setHelpCooldown(30); // 30초 쿨다운
-      alert('도움 요청이 전송되었습니다!');
+      toast('도움 요청이 전송되었습니다!', 'success');
     } catch (error) {
       console.error('Help request error:', error);
-      alert('도움 요청 전송에 실패했습니다. 다시 시도해주세요.');
+      toast('도움 요청 전송에 실패했습니다.', 'error');
     }
   }
 
@@ -708,10 +714,10 @@ export default function ParticipantPage() {
         setShareUrl(data.url);
         setIsQRModalOpen(true);
       } else {
-        alert('QR 코드 생성에 실패했습니다. 다시 시도해주세요.');
+        toast('QR 코드 생성에 실패했습니다.', 'error');
       }
     } catch (error) {
-      alert('QR 코드 생성 중 오류가 발생했습니다.');
+      toast('QR 코드 생성 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsSharing(false);
     }
